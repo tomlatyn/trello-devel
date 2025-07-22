@@ -130,25 +130,20 @@
             showLoading();
             
             console.log('🔍 Loading approvals at', new Date().toISOString());
-            console.log('🔍 Mock mode:', TrelloMockUtils.isMockMode());
             
-            // Use the new API wrapper that automatically handles mock vs real data
-            Promise.all([
-                TrelloMockUtils.api.getCurrentMember(),
-                TrelloMockUtils.api.getApprovalData()
-            ])
-            .then(function(results) {
-                console.log('✅ Promise.all resolved with results:', results);
-                var currentMember = results[0];
-                var data = results[1];
-                
+            // Get current member first
+            t.member('id')
+            .then(function(currentMember) {
                 console.log('📝 Current member:', currentMember);
-                console.log('📝 Approval data:', data);
-                
                 currentUserId = currentMember.id;
-                approvalData = data;
-                
                 console.log('Current user ID:', currentUserId);
+                
+                // Then get approval data
+                return t.get('card', 'shared', 'approvals', null);
+            })
+            .then(function(data) {
+                console.log('📝 Approval data:', data);
+                approvalData = data;
                 console.log('Approval data loaded:', approvalData);
                 
                 if (!approvalData || !approvalData.members || Object.keys(approvalData.members).length === 0) {
