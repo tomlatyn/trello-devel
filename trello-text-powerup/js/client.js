@@ -1,10 +1,7 @@
-// Use Trello's provided Bluebird Promise for better browser compatibility
-var Promise = window.TrelloPowerUp.Promise;
 
 TrelloPowerUp.initialize({
-  // Card back section - shows approval table in the card details
-  'card-back-section': function(t, opts) {
-    return t.get('card', 'shared', 'approvals', null)
+  'card-back-section': function(t) {
+    return t.get('card', 'private', 'approvals')
     .then(function(approvalData) {
       if (!approvalData || !approvalData.members) {
         return null;
@@ -19,22 +16,22 @@ TrelloPowerUp.initialize({
           icon: './icon.png',
           content: {
             type: 'iframe',
-            url: t.signUrl('./approval-section.html')
+            url: './approval-section.html'
           }
         };
 
-        if (isCreator) {
-          result.action = {
-            text: 'Reset all',
-            callback: function(t) {
-              return t.popup({
-                title: 'Reset All Approvals',
-                url: './reset-confirmation.html',
-                height: 200
-              });
-            }
-          };
-        }
+        // if (isCreator) {
+        //   result.action = {
+        //     text: 'Reset all',
+        //     callback: function(t) {
+        //       return t.popup({
+        //         title: 'Reset All Approvals',
+        //         url: './reset-confirmation.html',
+        //         height: 200
+        //       });
+        //     }
+        //   };
+        // }
         
         console.log('Final result object:', result);
         return result;
@@ -46,7 +43,6 @@ TrelloPowerUp.initialize({
     });
   },
   
-  // Rest of your code remains the same...
   'card-buttons': function(t, opts) {
     return [{
       icon: './icon.png',
@@ -55,13 +51,7 @@ TrelloPowerUp.initialize({
         return t.popup({
           title: 'Manage Approvals',
           url: './manage-approvals.html',
-          height: 700,
-          callback: function(t, opts) {
-            // This callback runs when t.notifyParent('done') is called from the popup
-            // Card-back-section iframe will automatically reload due to t.set() changing pluginData
-            console.log('Manage approvals popup completed, card-back-section will auto-refresh');
-            return Promise.resolve();
-          }
+          height: 700
         });
       }
     }];

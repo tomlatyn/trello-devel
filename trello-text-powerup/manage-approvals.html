@@ -311,18 +311,12 @@
             .then(function(currentMember) {
                 approvalData.createdBy = existingApprovals ? existingApprovals.createdBy : currentMember.id;
                 
-                // Save approval data directly to Trello
-                return t.set('card', 'shared', 'approvals', approvalData);
-            })
-            .then(function() {
-                console.log('Approvals saved successfully');
-                // Notify parent that we're done, this will trigger the callback
-                return t.notifyParent('done');
-            })
-            .then(function() {
-                // Close the popup after notifying parent
-                t.set()
-                return t.closePopup();
+                t.set('card', 'shared', 'approvals', approvalData)
+                .then(function() {
+                    console.log('Approvals saved successfully');
+
+                    t.closePopup();
+                })
             })
             .catch(function(error) {
                 console.error('Error saving approvals:', error);
@@ -339,13 +333,8 @@
             t.remove('card', 'shared', 'approvals')
             .then(function() {
                 console.log('Approvals deleted successfully');
-                // Notify parent that we're done, this will trigger the callback
-                return t.notifyParent('done');
-            })
-            .then(function() {
-                // Close the popup after notifying parent
-                t.set()
-                return t.closePopup();
+
+                t.closePopup();
             })
             .catch(function(error) {
                 console.error('Error deleting approvals:', error);
