@@ -59,5 +59,35 @@ TrelloPowerUp.initialize({
         console.error('Error in card-back-section:', error);
         return null; // Hide section on error
       });
+  },
+
+  // Card attachment section - shows text content in attachment area
+  'attachment-sections': function(t) {
+    return t.get('card', 'private', STORAGE_KEY)
+      .then(function(customText) {
+        if (!customText || customText.trim() === '') {
+          return []; // Don't show section if no content
+        }
+        
+        // Use t.signUrl for the iframe URL
+        return t.signUrl('./card-back.html?text=' + encodeURIComponent(customText))
+          .then(function(signedUrl) {
+            return [{
+              claimed: [{
+                icon: 'https://cdn.trello.com/power-ups/formatting/icon-gray.svg',
+                title: 'Custom Text Content',
+                content: {
+                  type: 'iframe',
+                  url: signedUrl,
+                  height: 100
+                }
+              }]
+            }];
+          });
+      })
+      .catch(function(error) {
+        console.error('Error in attachment-sections:', error);
+        return []; // Hide section on error
+      });
   }
 });
