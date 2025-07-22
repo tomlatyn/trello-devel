@@ -44,13 +44,13 @@ TrelloPowerUp.initialize({
           return null; // Don't show section if no content
         }
         
-        // Use t.signUrl() to properly sign iframe URL and pass data (required by Trello)
+        // Use iframe with URL parameters to pass content (required by Trello)
         return {
           title: 'Custom Text Content',
           icon: 'https://cdn.trello.com/power-ups/formatting/icon-gray.svg',
           content: {
             type: 'iframe',
-            url: t.signUrl('./card-back.html', { text: customText }),
+            url: './card-back.html?text=' + encodeURIComponent(customText),
             height: 100
           }
         };

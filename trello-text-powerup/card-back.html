@@ -26,24 +26,21 @@
 <body>
     <div id="text-content" class="text-content"></div>
     
-    <!-- Load Trello Power-Up client library -->
-    <script src="https://p.trellocdn.com/power-up.min.js"></script>
     <script>
-        // Get Trello Power-Up iframe context
-        const t = TrelloPowerUp.iframe();
+        // Get text content from URL parameters
+        function getTextFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const text = urlParams.get('text');
+            return text ? decodeURIComponent(text) : '';
+        }
         
-        // Display the text content using t.arg() to get data passed via t.signUrl()
+        // Display the text content
         function displayText() {
-            const textContent = t.arg('text');
+            const textContent = getTextFromURL();
             const contentElement = document.getElementById('text-content');
             
             if (textContent && contentElement) {
                 contentElement.textContent = textContent;
-                
-                // Auto-resize iframe to fit content
-                t.sizeTo('#text-content').catch(function(error) {
-                    console.error('Error sizing iframe:', error);
-                });
             }
         }
         
