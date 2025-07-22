@@ -115,8 +115,21 @@
                 t.get('card', 'shared', 'approvals', null)
             ])
             .then(function(results) {
-                allMembers = results[0];
+                var boardMembers = results[0];
                 existingApprovals = results[1];
+                
+                // Handle different possible data structures from t.board('members')
+                if (Array.isArray(boardMembers)) {
+                    allMembers = boardMembers;
+                } else if (boardMembers && boardMembers.members && Array.isArray(boardMembers.members)) {
+                    allMembers = boardMembers.members;
+                } else if (boardMembers && typeof boardMembers === 'object') {
+                    allMembers = Object.values(boardMembers);
+                } else {
+                    console.error('Unexpected board members data structure:', boardMembers);
+                    showError('Unable to load board members - unexpected data format.');
+                    return;
+                }
                 
                 console.log('Board members:', allMembers);
                 console.log('Existing approvals:', existingApprovals);
@@ -150,13 +163,25 @@
             
             membersList.innerHTML = '';
             
-            members.sort(function(a, b) {
+            // Ensure members is an array and handle different data structures
+            var membersArray = [];
+            if (Array.isArray(members)) {
+                membersArray = members;
+            } else if (members && typeof members === 'object') {
+                // If members is an object, convert to array
+                membersArray = Object.values(members);
+            } else {
+                console.error('Invalid members data structure:', members);
+                return;
+            }
+            
+            membersArray.sort(function(a, b) {
                 var nameA = a.fullName || a.username || '';
                 var nameB = b.fullName || b.username || '';
                 return nameA.localeCompare(nameB);
             });
             
-            members.forEach(function(member) {
+            membersArray.forEach(function(member) {
                 var memberItem = document.createElement('div');
                 memberItem.className = 'member-item';
                 memberItem.dataset.memberId = member.id;
