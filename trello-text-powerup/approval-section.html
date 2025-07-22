@@ -7,7 +7,7 @@
 </head>
 <body>
     <div class="view-wrapper">
-        <div id="loading" class="loading">
+        <div id="loading" class="loading hidden">
             <div class="spinner"></div>
             <p>Loading approvals...</p>
         </div>
@@ -32,7 +32,6 @@
         var t = TrelloPowerUp.iframe();
         var currentUserId = null;
         var approvalData = null;
-        var isInitialized = false;
         
         // Apply theme on page load
         function applyTheme() {
@@ -68,14 +67,6 @@
             console.log('Theme subscription not available:', error.message);
         }
 
-        function showLoading() {
-            document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('approval-container').classList.add('hidden');
-            document.getElementById('status-banner-container').innerHTML = '';
-            document.getElementById('no-approvals').classList.add('hidden');
-            document.getElementById('error').classList.add('hidden');
-        }
-        
         function showApprovals() {
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('approval-container').classList.remove('hidden');
@@ -149,40 +140,15 @@
             }
         }
         
-        // Check if data has changed by comparing JSON strings
-        function hasDataChanged(newData) {
-            if (!approvalData || !newData) return true;
-            
-            try {
-                var currentDataString = JSON.stringify(approvalData);
-                var newDataString = JSON.stringify(newData.approvalData);
-                return currentDataString !== newDataString || currentUserId !== newData.currentUserId;
-            } catch (error) {
-                console.error('Error comparing data:', error);
-                return true;
-            }
-        }
-        
-        function loadApprovals(forceLoading) {
-            // Only show loading on initial load or when forced
-            if (!isInitialized || forceLoading) {
-                showLoading();
-            }
-            
+        function loadApprovals() {
             console.log('🔍 Loading approvals at', new Date().toISOString());
             
-            // Get data from URL parameters instead of API calls
+            // Get data from URL parameters - no loading state needed since data is immediately available
             var urlData = getDataFromURL();
             
             if (!urlData) {
                 console.error('❌ Failed to get data from URL parameters');
                 showError();
-                return;
-            }
-            
-            // Check if data has actually changed
-            if (isInitialized && !hasDataChanged(urlData)) {
-                console.log('📝 Data unchanged, skipping update');
                 return;
             }
             
@@ -200,8 +166,6 @@
                 displayApprovals();
                 showApprovals();
             }
-            
-            isInitialized = true;
         }
         
         function displayApprovals() {
@@ -415,15 +379,15 @@
             t.set('card', 'shared', 'approvals', approvalData)
             .then(function() {
                 console.log('Approval status updated successfully');
-                // Refresh the display without loading state
+                // Refresh the display immediately
                 displayApprovals();
             })
             .catch(function(error) {
                 console.error('Error updating approval status:', error);
                 alert('Failed to update approval status. Please try again.');
                 
-                // Reload the approvals to reset the display (force loading)
-                loadApprovals(true);
+                // On error, reload to get fresh data
+                loadApprovals();
             });
         }
         
@@ -447,28 +411,14 @@
             return '?';
         }
         
-        // Listen for URL changes (when parent updates the iframe src)
-        function setupURLListener() {
-            // Check for URL changes periodically
-            var lastURL = window.location.href;
-            setInterval(function() {
-                if (window.location.href !== lastURL) {
-                    lastURL = window.location.href;
-                    console.log('🔄 URL changed, checking for data updates');
-                    loadApprovals(false); // Don't show loading on URL changes
-                }
-            }, 100);
-        }
-        
         // Initialize theme and load approvals when section opens
         function initialize() {
             applyTheme();
-            setupURLListener();
-            loadApprovals(true); // Show loading on initial load
+            loadApprovals(); // Load immediately without any loading state
         }
         
-        // Wait a bit for DOM to be ready
-        setTimeout(initialize, 100);
+        // Start immediately
+        initialize();
     </script>
 </body>
 </html>
