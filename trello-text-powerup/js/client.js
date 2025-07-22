@@ -36,7 +36,7 @@ TrelloPowerUp.initialize({
       });
   },
   
-  // Card back section - shows text content in iframe (required by Trello)
+  // Card back section - shows text content in iframe (uses t.get internally)
   'card-back-section': function(t) {
     return t.get('card', 'private', STORAGE_KEY)
       .then(function(customText) {
@@ -44,13 +44,13 @@ TrelloPowerUp.initialize({
           return null; // Don't show section if no content
         }
         
-        // Use iframe with URL parameters to pass content (required by Trello)
+        // Use iframe without URL parameters - content will be loaded via t.get
         return {
           title: 'Custom Text Content',
           icon: 'https://cdn.trello.com/power-ups/formatting/icon-gray.svg',
           content: {
             type: 'iframe',
-            url: './card-back.html?text=' + encodeURIComponent(customText),
+            url: t.signUrl('./card-back.html'),
             height: 100
           }
         };
@@ -69,8 +69,8 @@ TrelloPowerUp.initialize({
           return []; // Don't show section if no content
         }
         
-        // Use t.signUrl for the iframe URL
-        return t.signUrl('./card-back.html?text=' + encodeURIComponent(customText))
+        // Use t.signUrl for the iframe URL without parameters
+        return t.signUrl('./card-back.html')
           .then(function(signedUrl) {
             return [{
               claimed: [{

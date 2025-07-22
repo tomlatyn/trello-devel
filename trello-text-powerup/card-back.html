@@ -21,31 +21,49 @@
             overflow-wrap: break-word;
             max-width: 100%;
         }
+        
+        .loading {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #d32f2f;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
-    <div id="text-content" class="text-content"></div>
+    <div id="text-content" class="text-content loading">Loading...</div>
     
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
     <script>
-        // Get text content from URL parameters
-        function getTextFromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const text = urlParams.get('text');
-            return text ? decodeURIComponent(text) : '';
-        }
+        const STORAGE_KEY = 'customText';
+        const t = TrelloPowerUp.iframe();
         
-        // Display the text content
-        function displayText() {
-            const textContent = getTextFromURL();
+        // Load and display the text content using t.get()
+        function loadAndDisplayText() {
             const contentElement = document.getElementById('text-content');
             
-            if (textContent && contentElement) {
-                contentElement.textContent = textContent;
-            }
+            t.get('card', 'private', STORAGE_KEY)
+                .then(function(textContent) {
+                    if (textContent && textContent.trim() !== '') {
+                        contentElement.textContent = textContent;
+                        contentElement.className = 'text-content';
+                    } else {
+                        contentElement.textContent = 'No text content available.';
+                        contentElement.className = 'text-content';
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error loading text content:', error);
+                    contentElement.textContent = 'Error loading content.';
+                    contentElement.className = 'text-content error';
+                });
         }
         
         // Initialize when DOM is ready
-        document.addEventListener('DOMContentLoaded', displayText);
+        document.addEventListener('DOMContentLoaded', loadAndDisplayText);
     </script>
 </body>
 </html>
