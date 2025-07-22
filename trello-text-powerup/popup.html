@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Content Manager</title>
+    <link rel="stylesheet" href="css/popup.css">
+</head>
+<body>
+    <div class="popup-container">
+        <div class="form-group">
+            <label for="customTextInput">Custom Text Content:</label>
+            <textarea id="customTextInput" placeholder="Enter your custom text here..." rows="6"></textarea>
+        </div>
+        
+        <div class="button-group">
+            <button id="saveBtn" class="btn btn-primary">Save</button>
+            <button id="deleteBtn" class="btn btn-danger" style="display: none;">Delete</button>
+            <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
+        </div>
+        
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+        <div id="successMessage" class="success-message" style="display: none;"></div>
+    </div>
+    
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <script src="js/popup.js"></script>
+</body>
+</html>
