@@ -32,6 +32,7 @@
         var t = TrelloPowerUp.iframe();
         var currentUserId = null;
         var approvalData = null;
+        var isInitialized = false;
         
         // Apply theme on page load
         function applyTheme() {
@@ -148,8 +149,25 @@
             }
         }
         
-        function loadApprovals() {
-            showLoading();
+        // Check if data has changed by comparing JSON strings
+        function hasDataChanged(newData) {
+            if (!approvalData || !newData) return true;
+            
+            try {
+                var currentDataString = JSON.stringify(approvalData);
+                var newDataString = JSON.stringify(newData.approvalData);
+                return currentDataString !== newDataString || currentUserId !== newData.currentUserId;
+            } catch (error) {
+                console.error('Error comparing data:', error);
+                return true;
+            }
+        }
+        
+        function loadApprovals(forceLoading) {
+            // Only show loading on initial load or when forced
+            if (!isInitialized || forceLoading) {
+                showLoading();
+            }
             
             console.log('🔍 Loading approvals at', new Date().toISOString());
             
@@ -159,6 +177,12 @@
             if (!urlData) {
                 console.error('❌ Failed to get data from URL parameters');
                 showError();
+                return;
+            }
+            
+            // Check if data has actually changed
+            if (isInitialized && !hasDataChanged(urlData)) {
+                console.log('📝 Data unchanged, skipping update');
                 return;
             }
             
@@ -176,6 +200,8 @@
                 displayApprovals();
                 showApprovals();
             }
+            
+            isInitialized = true;
         }
         
         function displayApprovals() {
@@ -389,15 +415,15 @@
             t.set('card', 'shared', 'approvals', approvalData)
             .then(function() {
                 console.log('Approval status updated successfully');
-                // Refresh the display
+                // Refresh the display without loading state
                 displayApprovals();
             })
             .catch(function(error) {
                 console.error('Error updating approval status:', error);
                 alert('Failed to update approval status. Please try again.');
                 
-                // Reload the approvals to reset the display
-                loadApprovals();
+                // Reload the approvals to reset the display (force loading)
+                loadApprovals(true);
             });
         }
         
@@ -421,10 +447,24 @@
             return '?';
         }
         
+        // Listen for URL changes (when parent updates the iframe src)
+        function setupURLListener() {
+            // Check for URL changes periodically
+            var lastURL = window.location.href;
+            setInterval(function() {
+                if (window.location.href !== lastURL) {
+                    lastURL = window.location.href;
+                    console.log('🔄 URL changed, checking for data updates');
+                    loadApprovals(false); // Don't show loading on URL changes
+                }
+            }, 100);
+        }
+        
         // Initialize theme and load approvals when section opens
         function initialize() {
             applyTheme();
-            loadApprovals();
+            setupURLListener();
+            loadApprovals(true); // Show loading on initial load
         }
         
         // Wait a bit for DOM to be ready
