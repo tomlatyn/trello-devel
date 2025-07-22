@@ -36,7 +36,7 @@ TrelloPowerUp.initialize({
       });
   },
   
-  // Card back section - shows text content directly (no iframe to avoid cross-origin issues)
+  // Card back section - shows text content in iframe (required by Trello)
   'card-back-section': function(t) {
     return t.get('card', 'private', STORAGE_KEY)
       .then(function(customText) {
@@ -44,13 +44,14 @@ TrelloPowerUp.initialize({
           return null; // Don't show section if no content
         }
         
-        // Return direct content instead of iframe to avoid cross-origin issues
+        // Use iframe with URL parameters to pass content (required by Trello)
         return {
           title: 'Custom Text Content',
           icon: 'https://cdn.trello.com/power-ups/formatting/icon-gray.svg',
           content: {
-            type: 'text',
-            text: customText
+            type: 'iframe',
+            url: './card-back.html?text=' + encodeURIComponent(customText),
+            height: 100
           }
         };
       })
