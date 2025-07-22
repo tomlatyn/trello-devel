@@ -29,8 +29,6 @@
     
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
     <script>
-        // Use Trello's provided Bluebird Promise for better browser compatibility
-        var Promise = window.TrelloPowerUp.Promise;
         var t = TrelloPowerUp.iframe();
         var currentUserId = null;
         var approvalData = null;
@@ -124,44 +122,60 @@
             }, 50);
         }
         
+        // Get data from URL parameters
+        function getDataFromURL() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var dataParam = urlParams.get('data');
+            var userIdParam = urlParams.get('userId');
+            
+            if (!dataParam || !userIdParam) {
+                console.error('Missing required URL parameters');
+                return null;
+            }
+            
+            try {
+                var decodedData = decodeURIComponent(dataParam);
+                var parsedData = JSON.parse(decodedData);
+                var decodedUserId = decodeURIComponent(userIdParam);
+                
+                return {
+                    approvalData: parsedData,
+                    currentUserId: decodedUserId
+                };
+            } catch (error) {
+                console.error('Error parsing URL parameters:', error);
+                return null;
+            }
+        }
+        
         function loadApprovals() {
             showLoading();
             
             console.log('🔍 Loading approvals at', new Date().toISOString());
             
-            // Use direct Trello API calls instead of mock utilities
-            Promise.all([
-                t.member('id'),
-                t.get('card', 'shared', 'approvals', null)
-            ])
-            .then(function(results) {
-                console.log('✅ Promise.all resolved with results:', results);
-                var currentMember = results[0];
-                var data = results[1];
-                
-                console.log('📝 Current member:', currentMember);
-                console.log('📝 Approval data:', data);
-                
-                currentUserId = currentMember.id;
-                approvalData = data;
-                
-                console.log('Current user ID:', currentUserId);
-                console.log('Approval data loaded:', approvalData);
-                
-                if (!approvalData || !approvalData.members || Object.keys(approvalData.members).length === 0) {
-                    console.log('No approval data found');
-                    showNoApprovals();
-                } else {
-                    console.log('Displaying approvals for', Object.keys(approvalData.members).length, 'members');
-                    displayApprovals();
-                    showApprovals();
-                }
-            })
-            .catch(function(error) {
-                console.error('❌ Error loading approvals:', error);
-                console.error('❌ Error stack:', error.stack);
+            // Get data from URL parameters instead of API calls
+            var urlData = getDataFromURL();
+            
+            if (!urlData) {
+                console.error('❌ Failed to get data from URL parameters');
                 showError();
-            });
+                return;
+            }
+            
+            currentUserId = urlData.currentUserId;
+            approvalData = urlData.approvalData;
+            
+            console.log('📝 Current user ID:', currentUserId);
+            console.log('📝 Approval data:', approvalData);
+            
+            if (!approvalData || !approvalData.members || Object.keys(approvalData.members).length === 0) {
+                console.log('No approval data found');
+                showNoApprovals();
+            } else {
+                console.log('Displaying approvals for', Object.keys(approvalData.members).length, 'members');
+                displayApprovals();
+                showApprovals();
+            }
         }
         
         function displayApprovals() {
