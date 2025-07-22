@@ -42,6 +42,8 @@
     </div>
     
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <script src="js/mock-data.js"></script>
+    <script src="js/mock-utils.js"></script>
     <script>
         // Use Trello's provided Bluebird Promise for better browser compatibility
         var Promise = window.TrelloPowerUp.Promise;
@@ -109,10 +111,10 @@
         function loadData() {
             showLoading();
             
-            // Use direct Trello API calls instead of mock utilities
+            // Use the new API wrapper that automatically handles mock vs real data
             Promise.all([
-                t.board('members'),
-                t.get('card', 'shared', 'approvals', null)
+                TrelloMockUtils.api.getBoardMembers(),
+                TrelloMockUtils.api.getApprovalData()
             ])
             .then(function(results) {
                 allMembers = results[0];
@@ -144,6 +146,7 @@
                 showError('Unable to load data. Please try again.');
             });
         }
+        
         
         function displayMembers(members) {
             var membersList = document.getElementById('members-list');
@@ -303,12 +306,12 @@
                 };
             });
             
-            // Get current member and save data using direct Trello API
+            // Get current member and save data directly
             t.member('id')
             .then(function(currentMember) {
                 approvalData.createdBy = existingApprovals ? existingApprovals.createdBy : currentMember.id;
                 
-                // Save approval data using direct Trello API
+                // Save approval data directly to Trello
                 return t.set('card', 'shared', 'approvals', approvalData);
             })
             .then(function() {
@@ -318,6 +321,7 @@
             })
             .then(function() {
                 // Close the popup after notifying parent
+                t.set()
                 return t.closePopup();
             })
             .catch(function(error) {
@@ -331,7 +335,7 @@
                 return;
             }
             
-            // Delete approval data using direct Trello API
+            // Delete approval data directly from Trello
             t.remove('card', 'shared', 'approvals')
             .then(function() {
                 console.log('Approvals deleted successfully');
@@ -340,6 +344,7 @@
             })
             .then(function() {
                 // Close the popup after notifying parent
+                t.set()
                 return t.closePopup();
             })
             .catch(function(error) {
@@ -367,11 +372,16 @@
         
         // Initialize theme and load data when popup opens
         function initialize() {
+            // Ensure mock utilities are available if needed
+            if (window.TrelloMockUtils && window.TrelloMockUtils.isMockMode()) {
+                window.TrelloMockUtils.mockTrelloIframe();
+            }
+            
             applyTheme();
             loadData();
         }
         
-        // Wait a bit for DOM to be ready
+        // Wait a bit for all scripts to load
         setTimeout(initialize, 100);
     </script>
 </body>
