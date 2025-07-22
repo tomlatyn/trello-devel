@@ -42,6 +42,8 @@
     </div>
     
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <script src="js/mock-data.js"></script>
+    <script src="js/mock-utils.js"></script>
     <script>
         // Use Trello's provided Bluebird Promise for better browser compatibility
         var Promise = window.TrelloPowerUp.Promise;
@@ -109,27 +111,14 @@
         function loadData() {
             showLoading();
             
-            // Use direct Trello API calls instead of mock utilities
+            // Use the new API wrapper that automatically handles mock vs real data
             Promise.all([
-                t.board('members'),
-                t.get('card', 'shared', 'approvals', null)
+                TrelloMockUtils.api.getBoardMembers(),
+                TrelloMockUtils.api.getApprovalData()
             ])
             .then(function(results) {
-                var boardMembers = results[0];
+                allMembers = results[0];
                 existingApprovals = results[1];
-                
-                // Handle different possible data structures from t.board('members')
-                if (Array.isArray(boardMembers)) {
-                    allMembers = boardMembers;
-                } else if (boardMembers && boardMembers.members && Array.isArray(boardMembers.members)) {
-                    allMembers = boardMembers.members;
-                } else if (boardMembers && typeof boardMembers === 'object') {
-                    allMembers = Object.values(boardMembers);
-                } else {
-                    console.error('Unexpected board members data structure:', boardMembers);
-                    showError('Unable to load board members - unexpected data format.');
-                    return;
-                }
                 
                 console.log('Board members:', allMembers);
                 console.log('Existing approvals:', existingApprovals);
@@ -158,30 +147,19 @@
             });
         }
         
+        
         function displayMembers(members) {
             var membersList = document.getElementById('members-list');
             
             membersList.innerHTML = '';
             
-            // Ensure members is an array and handle different data structures
-            var membersArray = [];
-            if (Array.isArray(members)) {
-                membersArray = members;
-            } else if (members && typeof members === 'object') {
-                // If members is an object, convert to array
-                membersArray = Object.values(members);
-            } else {
-                console.error('Invalid members data structure:', members);
-                return;
-            }
-            
-            membersArray.sort(function(a, b) {
+            members.sort(function(a, b) {
                 var nameA = a.fullName || a.username || '';
                 var nameB = b.fullName || b.username || '';
                 return nameA.localeCompare(nameB);
             });
             
-            membersArray.forEach(function(member) {
+            members.forEach(function(member) {
                 var memberItem = document.createElement('div');
                 memberItem.className = 'member-item';
                 memberItem.dataset.memberId = member.id;
@@ -328,12 +306,12 @@
                 };
             });
             
-            // Get current member and save data using direct Trello API
+            // Get current member and save data directly
             t.member('id')
             .then(function(currentMember) {
                 approvalData.createdBy = existingApprovals ? existingApprovals.createdBy : currentMember.id;
                 
-                // Save approval data using direct Trello API
+                // Save approval data directly to Trello
                 return t.set('card', 'shared', 'approvals', approvalData);
             })
             .then(function() {
@@ -343,6 +321,7 @@
             })
             .then(function() {
                 // Close the popup after notifying parent
+                t.set()
                 return t.closePopup();
             })
             .catch(function(error) {
@@ -356,7 +335,7 @@
                 return;
             }
             
-            // Delete approval data using direct Trello API
+            // Delete approval data directly from Trello
             t.remove('card', 'shared', 'approvals')
             .then(function() {
                 console.log('Approvals deleted successfully');
@@ -365,6 +344,7 @@
             })
             .then(function() {
                 // Close the popup after notifying parent
+                t.set()
                 return t.closePopup();
             })
             .catch(function(error) {
@@ -392,11 +372,16 @@
         
         // Initialize theme and load data when popup opens
         function initialize() {
+            // Ensure mock utilities are available if needed
+            if (window.TrelloMockUtils && window.TrelloMockUtils.isMockMode()) {
+                window.TrelloMockUtils.mockTrelloIframe();
+            }
+            
             applyTheme();
             loadData();
         }
         
-        // Wait a bit for DOM to be ready
+        // Wait a bit for all scripts to load
         setTimeout(initialize, 100);
     </script>
 </body>

@@ -17,6 +17,8 @@
     </div>
     
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <script src="js/mock-data.js"></script>
+    <script src="js/mock-utils.js"></script>
     <script>
         var t = TrelloPowerUp.iframe();
         
@@ -53,7 +55,7 @@
         function resetAllApprovals() {
             console.log('🔄 Resetting all approvals...');
             
-            return t.get('card', 'shared', 'approvals', null)
+            return TrelloMockUtils.api.getApprovalData()
             .then(function(approvalData) {
                 if (!approvalData || !approvalData.members) {
                     console.log('❌ No approval data or members found');
@@ -70,14 +72,20 @@
                 });
                 
                 console.log('💾 Saving updated approval data...');
-                return t.set('card', 'shared', 'approvals', approvalData);
+                return TrelloMockUtils.api.saveApprovalData(approvalData);
             })
             .then(function() {
                 console.log('✅ Data saved successfully!');
                 console.log('🔄 Closing popup...');
                 
-                // Close popup - the card will auto-refresh due to data changes via t.set()
-                return t.closePopup();
+                // Close popup and try to signal parent
+                if (TrelloMockUtils.isMockMode()) {
+                    alert('✅ Approvals reset successfully! (Mock mode)');
+                    return TrelloMockUtils.api.closePopup();
+                } else {
+                    // Close popup - the card will auto-refresh due to data changes via t.set()
+                    return t.closePopup();
+                }
             })
             .catch(function(error) {
                 console.error('❌ Error resetting approvals:', error);
@@ -87,7 +95,7 @@
         
         // Event listeners
         document.getElementById('cancel-button').addEventListener('click', function() {
-            t.closePopup();
+            TrelloMockUtils.api.closePopup();
         });
         
         document.getElementById('reset-button').addEventListener('click', function() {
@@ -96,6 +104,10 @@
         
         // Initialize theme when popup opens
         function initialize() {
+            if (window.TrelloMockUtils && window.TrelloMockUtils.isMockMode()) {
+                window.TrelloMockUtils.mockTrelloIframe();
+            }
+            
             applyTheme();
         }
         

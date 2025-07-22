@@ -28,6 +28,8 @@
     </div>
     
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <script src="js/mock-data.js"></script>
+    <script src="js/mock-utils.js"></script>
     <script>
         // Use Trello's provided Bluebird Promise for better browser compatibility
         var Promise = window.TrelloPowerUp.Promise;
@@ -128,11 +130,12 @@
             showLoading();
             
             console.log('🔍 Loading approvals at', new Date().toISOString());
+            console.log('🔍 Mock mode:', TrelloMockUtils.isMockMode());
             
-            // Use direct Trello API calls instead of mock utilities
+            // Use the new API wrapper that automatically handles mock vs real data
             Promise.all([
-                t.member('id'),
-                t.get('card', 'shared', 'approvals', null)
+                TrelloMockUtils.api.getCurrentMember(),
+                TrelloMockUtils.api.getApprovalData()
             ])
             .then(function(results) {
                 console.log('✅ Promise.all resolved with results:', results);
@@ -371,8 +374,8 @@
             
             console.log('Updated approval data:', approvalData);
             
-            // Save updated data using direct Trello API
-            t.set('card', 'shared', 'approvals', approvalData)
+            // Save updated data using the new API wrapper
+            TrelloMockUtils.api.saveApprovalData(approvalData)
             .then(function() {
                 console.log('Approval status updated successfully');
                 // Refresh the display
@@ -409,11 +412,16 @@
         
         // Initialize theme and load approvals when section opens
         function initialize() {
+            // Ensure mock utilities are available if needed
+            if (window.TrelloMockUtils && window.TrelloMockUtils.isMockMode()) {
+                window.TrelloMockUtils.mockTrelloIframe();
+            }
+            
             applyTheme();
             loadApprovals();
         }
         
-        // Wait a bit for DOM to be ready
+        // Wait a bit for all scripts to load
         setTimeout(initialize, 100);
     </script>
 </body>
