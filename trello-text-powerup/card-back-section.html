@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Card Data</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="data-content"></div>
+    
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <script>
+        var t = TrelloPowerUp.iframe();
+
+        var urlParams = new URLSearchParams(window.location.search);
+        var dataParam = urlParams.get('data');
+
+        if (dataParam) {
+            try {
+                var cardData = JSON.parse(decodeURIComponent(dataParam));
+                var pre = document.createElement('pre');
+                pre.style.whiteSpace = 'pre-wrap';
+                pre.style.fontFamily = 'monospace';
+                pre.style.fontSize = '12px';
+                pre.textContent = JSON.stringify(cardData, null, 2);
+                document.getElementById('data-content').appendChild(pre);
+            } catch (error) {
+                document.getElementById('data-content').textContent = 'Error loading card data';
+            }
+        } else {
+            document.getElementById('data-content').textContent = 'No data available';
+        }
+
+        t.sizeTo('body');
+    </script>
+</body>
+</html>
