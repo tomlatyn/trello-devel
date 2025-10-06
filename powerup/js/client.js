@@ -1,10 +1,17 @@
 TrelloPowerUp.initialize({
   'card-back-section': function(t) {
-    return t.getAll()
-    .then(function(allData) {
-      if (!allData || Object.keys(allData).length === 0) {
-        return null;
-      }
+    return Promise.all([
+      t.card('all'),  // Get all card fields
+      t.getAll()      // Get data stored by this power-up
+    ])
+    .then(function(results) {
+      var cardData = results[0];
+      var powerUpData = results[1];
+
+      var allData = {
+        card: cardData,
+        powerUpData: powerUpData
+      };
 
       var encodedData = encodeURIComponent(JSON.stringify(allData));
 
