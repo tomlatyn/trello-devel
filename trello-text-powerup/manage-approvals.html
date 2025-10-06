@@ -311,19 +311,23 @@
             .then(function(currentMember) {
                 approvalData.createdBy = existingApprovals ? existingApprovals.createdBy : currentMember.id;
                 
-                t.set('card', 'shared', 'approvals', approvalData)
-                .then(function() {
-                    console.log('Approvals saved successfully');
-
-                    t.closePopup();
-                })
+                // Save approval data directly to Trello
+                return t.set('card', 'shared', 'approvals', approvalData);
+            })
+            .then(function() {
+                console.log('Approvals saved successfully');
+                // Notify parent that we're done (optional but good practice)
+                return t.notifyParent('done');
+            })
+            .then(function() {
+                t.closePopup();
             })
             .catch(function(error) {
                 console.error('Error saving approvals:', error);
                 alert('Failed to save approvals. Please try again.');
             });
         }
-        
+
         function deleteApprovals() {
             if (!confirm('Are you sure you want to delete all approvals for this card? This action cannot be undone.')) {
                 return;
@@ -333,7 +337,10 @@
             t.remove('card', 'shared', 'approvals')
             .then(function() {
                 console.log('Approvals deleted successfully');
-
+                // Notify parent that we're done (optional but good practice)
+                return t.notifyParent('done');
+            })
+            .then(function() {
                 t.closePopup();
             })
             .catch(function(error) {

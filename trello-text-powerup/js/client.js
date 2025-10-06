@@ -14,12 +14,16 @@ TrelloPowerUp.initialize({
       return t.member('id').then(function(currentUserId) {
         var isCreator = (approvalData.createdBy === currentUserId.id);
         
+        // Encode approval data and current user ID as URL parameters
+        var encodedData = encodeURIComponent(JSON.stringify(approvalData));
+        var encodedUserId = encodeURIComponent(currentUserId.id);
+        
         var result = {
           title: 'Approvals SM',
           icon: './icon.png',
           content: {
             type: 'iframe',
-            url: './approval-section.html'
+            url: t.signUrl('./approval-section.html?data=' + encodedData + '&userId=' + encodedUserId)
           }
         };
 
@@ -27,11 +31,10 @@ TrelloPowerUp.initialize({
           result.action = {
             text: 'Reset all',
             callback: function(t) {
-              return t.popup({
-                title: 'Reset All Approvals',
-                url: './reset-confirmation.html',
-                height: 200
-              });
+              // Show confirmation dialog directly
+              if (confirm('Are you sure you want to reset all approvals to pending status?\n\nThis action cannot be undone.')) {
+                resetAllApprovals(t);
+              }
             }
           };
         }
@@ -70,18 +73,13 @@ TrelloPowerUp.initialize({
   'card-badges': function(t, opts) {
     // Use the centralized badge logic
     return TrelloApprovalBadges.getCardBadges(t, opts);
-  },
+  }
 });
 
-// Function to reset all approvals to pending status
 function resetAllApprovals(t) {
   console.log('🔄 Reset all approvals function called!');
   
-  if (!confirm('Are you sure you want to reset all approvals to pending status?')) {
-    return Promise.resolve();
-  }
-  
-  return t.get('card', 'shared', 'approvals', null)
+  t.get('card', 'shared', 'approvals', null)
   .then(function(approvalData) {
     console.log('📄 Got approval data:', approvalData);
     if (!approvalData || !approvalData.members) {
@@ -104,11 +102,9 @@ function resetAllApprovals(t) {
   .then(function() {
     console.log('✅ Data saved successfully!');
     // Data change via t.set() will automatically refresh the card-back-section
-    return Promise.resolve();
   })
   .catch(function(error) {
     console.error('❌ Error resetting approvals:', error);
     alert('Failed to reset approvals. Please try again.');
-    return Promise.resolve();
   });
 }
