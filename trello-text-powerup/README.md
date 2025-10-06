@@ -1,169 +1,297 @@
-# Text Content Manager - Trello Power-Up
+# Trello Approvals Power-Up
 
-A simple Trello Power-Up that allows users to add, edit, and delete custom text content on Trello cards. The text is displayed in a card-back-section and managed through a popup interface.
+A Trello Power-Up that adds approval workflows to your Trello cards. Team members can approve, reject, or request changes on cards, with real-time status tracking and visual indicators.
 
-## Features
+## 🚀 Features
 
-- **Add Custom Text**: Add custom text content to any Trello card
-- **Edit Text**: Modify existing text content with a user-friendly interface
-- **Delete Text**: Remove text content when no longer needed
-- **Card Back Display**: View text content directly on the card back
-- **Private Storage**: Text content is stored privately per card
+- **Visual Approval Status**: See approval status at a glance with color-coded indicators
+- **Individual Member Actions**: Each team member can approve, reject, or reset their status
+- **Real-time Updates**: Status changes are immediately reflected across all views
+- **Smart Status Logic**: Overall card status based on individual member approvals
+- **Member Management**: Easy selection of which team members need to provide approval
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
 
-## Installation
+## 📁 Project Structure
 
-### Step 1: Host the Files
+```
+trello-approvals/
+├── index.html              # Main Power-Up entry point
+├── approval-section.html   # Approval status view (card sections)
+├── manage-approvals.html   # Member selection popup
+├── css/
+│   └── style.css          # Consolidated styles for all components
+├── js/
+│   ├── client.js          # Main Power-Up logic and Trello integration
+│   ├── mock-data.js       # Centralized mock data for development
+│   └── mock-utils.js      # Smart mocking system and API abstraction
+└── README.md              # This file
+```
 
-1. Upload all files to a web server accessible via HTTPS
-2. Update the `manifest.json` file to point to your domain:
-   ```json
-   "connectors": {
-     "iframe": {
-       "url": "https://your-domain.com/index.html"
-     }
-   }
+## 🎯 How It Works
+
+### 1. **Setup Approvals**
+- Click "Manage Approvals" from the card menu
+- Select team members who need to provide approval
+- Save to create the approval workflow
+
+### 2. **Approval Process**
+- Team members see the approval section on cards
+- Each member can:
+  - ✅ **Approve**: Mark as approved
+  - ❌ **Reject**: Mark as rejected  
+  - 🔄 **Reset**: Return to pending status
+
+### 3. **Status Logic**
+The overall card status follows this priority:
+1. **Pending**: If any member has pending approval
+2. **Rejected**: If no pending and at least one rejection
+3. **Approved**: If all members have approved
+
+### 4. **Visual Indicators**
+- **Purple**: Pending approvals
+- **Green**: Approved
+- **Red**: Rejected
+- **Yellow highlight**: Current user's row
+
+## 🛠️ Development & Testing
+
+### Smart Mocking System
+
+This project includes an intelligent mocking system for development and testing that **automatically detects** when to use mock data without requiring code changes.
+
+#### 🎛️ Ways to Enable Mock Mode
+
+1. **🔗 URL Parameter** (Quick testing):
+   ```
+   approval-section.html?mock=true
+   manage-approvals.html?mock=true
    ```
 
-### Step 2: Add Power-Up to Trello
+2. **💾 Browser Console** (Persistent for development):
+   ```javascript
+   // Enable mock mode (persists until disabled)
+   TrelloMockUtils.enableMockMode()
+   
+   // Disable mock mode
+   TrelloMockUtils.disableMockMode()
+   
+   // Toggle current state
+   TrelloMockUtils.toggleMockMode()
+   
+   // Check current status
+   TrelloMockUtils.logModeStatus()
+   ```
 
-1. Go to your Trello board
-2. Click the "Show Menu" button (top right)
-3. Select "Power-Ups"
-4. Click "Custom Power-Up"
-5. Enter the URL to your `manifest.json` file
-6. Click "Add Power-Up"
+3. **🏠 Auto-Detection** (Automatic):
+   - Automatically enables on `localhost`, `127.0.0.1`, or `.local` domains
+   - No setup required for local development
 
-## File Structure
+#### 🎭 Mock Data Features
 
+- **Consistent Data**: Same mock users across all components
+- **Realistic Scenarios**: Mix of approved, rejected, and pending statuses
+- **Visual Feedback**: Console logs clearly indicate mock mode
+- **Zero Risk**: No chance of accidentally deploying with mock data enabled
+
+#### 👨‍💻 Developer Experience
+
+When mock mode is active, you'll see:
 ```
-trello-text-powerup/
-├── manifest.json          # Power-Up configuration
-├── index.html            # Entry point HTML
-├── popup.html            # Popup interface HTML
-├── card-back.html        # Card back section HTML
-├── js/
-│   ├── client.js         # Main Power-Up logic
-│   ├── popup.js          # Popup functionality
-│   └── card-back.js      # Card back section logic
-├── css/
-│   ├── styles.css        # Main styles
-│   └── popup.css         # Popup styles
-└── README.md             # This file
+🎭 Running in MOCK mode
+📝 Mock mode enabled by:
+  • URL parameter (?mock=true)
+💡 Use TrelloMockUtils.disableMockMode() to disable
 ```
 
-## Usage
+All API calls are intercepted and return mock data instead of calling Trello APIs:
+```
+🎭 [MOCK] Getting current member: user123
+🎭 [MOCK] Getting approval data
+🎭 [MOCK] Saving approval data: {...}
+```
 
-### Adding Text Content
+### File Purposes
+
+#### HTML Files
+- **`index.html`**: Main Power-Up entry point, loads the Trello Power-Up framework
+- **`approval-section.html`**: Displays approval status and member actions within cards
+- **`manage-approvals.html`**: Popup for selecting which members need to provide approval
+
+#### JavaScript Files
+- **`client.js`**: Core Power-Up logic, defines capabilities and UI integration
+- **`mock-data.js`**: Centralized mock data with helper functions
+- **`mock-utils.js`**: Smart detection system and API abstraction layer
+
+#### CSS Files
+- **`style.css`**: Consolidated styles for all components, optimized and cleaned of unused rules
+
+## 🔧 Installation & Setup
+
+### For Trello Power-Up Development
+
+1. **Host the files** on a web server (GitHub Pages, Netlify, etc.)
+
+2. **Create a Power-Up** in Trello:
+   - Go to [https://trello.com/power-ups/admin](https://trello.com/power-ups/admin)
+   - Create new Power-Up
+   - Set the iframe connector URL to your hosted `index.html`
+
+3. **Add to a board**:
+   - Go to any Trello board
+   - Click "Power-Ups" → "Add Power-Ups"
+   - Find your Power-Up and enable it
+
+### For Local Development
+
+1. **Clone/download** the project files
+
+2. **Start a local server**:
+   ```bash
+   # Using Python 3
+   python -m http.server 8000
+   
+   # Using Node.js
+   npx serve .
+   
+   # Using PHP
+   php -S localhost:8000
+   ```
+
+3. **Access with mock data**:
+   ```
+   http://localhost:8000/approval-section.html?mock=true
+   http://localhost:8000/manage-approvals.html?mock=true
+   ```
+
+## 📱 Usage Examples
+
+### Setting Up Approvals
 
 1. Open a Trello card
-2. Click the "Add Text" button (appears in card buttons)
-3. Enter your text in the popup window
-4. Click "Save"
-5. The text will appear in the card back section
+2. Click "Manage Approvals" from the card menu
+3. Select team members (e.g., John Doe, Jane Smith, Mike Johnson)
+4. Click "Save Changes"
+5. The approval section will appear on the card
 
-### Editing Text Content
+### Using Approvals
 
-1. Open a card that has existing text content
-2. Click the "Edit Text" button
-3. Modify the text in the popup window
-4. Click "Save" to update, or "Delete" to remove completely
+1. **As a team member**:
+   - Open the card
+   - Find the "Approvals" section
+   - Click "Approve" or "Reject" buttons
+   - Your status updates immediately
 
-### Viewing Text Content
+2. **As a project manager**:
+   - View overall status in the banner
+   - See individual member statuses
+   - Track progress across team members
 
-- Text content is automatically displayed in the card back section
-- Only shows when text content exists
-- Section title: "Custom Text Content"
+### Modifying Approvals
 
-## Development
+1. Click "Manage Approvals" again
+2. Add/remove team members as needed
+3. Existing statuses are preserved when possible
+4. Use "Delete All" to completely remove approvals
 
-### Local Development Setup
-
-1. Clone or download the project files
-2. Serve the files using a local web server with HTTPS
-3. Update `manifest.json` with your local server URL
-4. Use Trello's Power-Up development features for testing
-
-### Hosting Requirements
-
-- **HTTPS Required**: Trello requires all Power-Up content to be served over HTTPS
-- **CORS Headers**: Ensure your server allows cross-origin requests from Trello domains
-- **Static File Serving**: All files can be served as static content
-
-### Testing
-
-1. Test the complete user flow:
-   - Add text content to a card
-   - Edit existing text content
-   - Delete text content
-   - Verify card back section updates correctly
-
-2. Test edge cases:
-   - Empty text input
-   - Very long text content
-   - Special characters and formatting
-
-## Technical Details
-
-### Data Storage
-
-- Uses Trello's `pluginData` API
-- Scope: `card` (data is stored per card)
-- Visibility: `private` (data is private to the Power-Up)
-- Storage key: `customText`
-
-### API Integration
-
-- Trello Power-Up Client Library: `https://p.trellocdn.com/power-up.min.js`
-- Capabilities used:
-  - `card-buttons`: Adds button to card interface
-  - `card-back-section`: Displays content in card back
-
-### Browser Support
-
-- Modern browsers with ES6+ support
-- Compatible with Trello's supported browser list
-- Responsive design works on desktop and mobile
-
-## Troubleshooting
-
-### Power-Up Not Loading
-
-1. Verify all files are accessible via HTTPS
-2. Check browser console for JavaScript errors
-3. Ensure `manifest.json` URLs are correct
-4. Verify CORS headers are properly configured
-
-### Text Not Saving
-
-1. Check browser console for API errors
-2. Verify Trello Power-Up permissions
-3. Test with different text content lengths
-4. Ensure popup.js is loading correctly
-
-### Card Back Section Not Showing
-
-1. Verify text content exists for the card
-2. Check that `card-back.html` and `card-back.js` are accessible
-3. Review browser console for iframe loading errors
-
-## Customization
+## 🎨 Customization
 
 ### Styling
+All styles are in `css/style.css`. Key customizable elements:
 
-- Modify `css/styles.css` for card back section appearance
-- Modify `css/popup.css` for popup interface styling
-- Colors and fonts can be customized to match your brand
+```css
+/* Status colors */
+.status-pending { background-color: #7c3aed; }
+.status-approved { background-color: #10b981; }
+.status-rejected { background-color: #ef4444; }
 
-### Functionality
+/* Current user highlighting */
+.approval-member.current-user { 
+    background-color: #fff8e1;
+    border-left: 3px solid #ffc107;
+}
+```
 
-- Extend `popup.js` to add text formatting options
-- Modify `card-back.js` to change how text is displayed
-- Add validation rules in `popup.js` for text content
+### Mock Data
+Customize mock users in `js/mock-data.js`:
 
-## License
+```javascript
+window.TrelloMockData = {
+    boardMembers: [
+        {
+            id: 'user123',
+            fullName: 'Your Name',
+            username: 'yourname',
+            avatarUrl: 'your-avatar-url'
+        }
+        // Add more users...
+    ]
+};
+```
 
-This project is provided as-is for educational and development purposes.
+## 🐛 Troubleshooting
 
-## Support
+### Common Issues
 
-For issues related to Trello Power-Up development, consult the [Trello Power-Up Documentation](https://developer.atlassian.com/cloud/trello/power-ups/).
+**Problem**: "No approvals created" message appears
+- **Solution**: First use "Manage Approvals" to select team members
+
+**Problem**: Can't see approval buttons
+- **Solution**: Hover over your own row to see action buttons
+
+**Problem**: Changes not saving
+- **Solution**: Check browser console for errors, ensure proper Trello Power-Up setup
+
+**Problem**: Mock data not loading
+- **Solution**: Add `?mock=true` to URL or use `TrelloMockUtils.enableMockMode()`
+
+### Development Debugging
+
+1. **Check mock mode status**:
+   ```javascript
+   TrelloMockUtils.logModeStatus()
+   ```
+
+2. **Force mock mode**:
+   ```javascript
+   TrelloMockUtils.enableMockMode()
+   // Then reload the page
+   ```
+
+3. **Check browser console** for detailed logging:
+   - Mock mode indicators: `🎭 [MOCK]`
+   - API calls and responses
+   - Error messages and stack traces
+
+### Browser Compatibility
+
+- **Supported**: Chrome 60+, Firefox 55+, Safari 12+, Edge 79+
+- **Required**: ES6 features (Promises, const/let, arrow functions)
+- **Responsive**: Works on mobile devices and tablets
+
+## 🔐 Security & Privacy
+
+- **No external dependencies**: All code is self-contained
+- **Trello API only**: Data is stored using Trello's official APIs
+- **No data collection**: No analytics or tracking
+- **Local mock data**: Development data never leaves your browser
+
+## 📄 License
+
+This project is open source. Feel free to modify and distribute according to your needs.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Make your changes
+3. Test with mock data using `?mock=true`
+4. Submit a pull request
+
+For development, use the mock system to avoid affecting real Trello data:
+```javascript
+// Enable persistent mock mode for development
+TrelloMockUtils.enableMockMode()
+```
+
+---
+
+**Need help?** Check the browser console for detailed logs and error messages. The mock system provides extensive debugging information to help identify issues.

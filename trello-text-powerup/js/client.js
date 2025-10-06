@@ -1,93 +1,110 @@
-const STORAGE_KEY = 'customText';
+// Use Trello's provided Bluebird Promise for better browser compatibility
+var Promise = window.TrelloPowerUp.Promise;
 
-// Initialize the Trello Power-Up
 TrelloPowerUp.initialize({
-  // Card buttons capability - shows "Add Text" or "Edit Text" button
-  'card-buttons': function(t) {
-    return t.get('card', 'private', STORAGE_KEY)
-      .then(function(customText) {
-        return [{
-          icon: 'https://cdn.trello.com/power-ups/formatting/icon-gray.svg',
-          text: customText ? 'Edit Text' : 'Add Text',
-          callback: function(t) {
-            // Use relative path to avoid cross-origin issues
-            return t.popup({
-              title: 'Manage Text Content',
-              url: './popup.html',
-              height: 300
-            });
-          }
-        }];
-      })
-      .catch(function(error) {
-        console.error('Error in card-buttons:', error);
-        // Return default button even if data loading fails
-        return [{
-          icon: 'https://cdn.trello.com/power-ups/formatting/icon-gray.svg',
-          text: 'Add Text',
-          callback: function(t) {
-            return t.popup({
-              title: 'Manage Text Content',
-              url: './popup.html',
-              height: 300
-            });
-          }
-        }];
-      });
-  },
-  
-  // Card back section - shows text content in iframe (uses t.get internally)
-  'card-back-section': function(t) {
-    return t.get('card', 'private', STORAGE_KEY)
-      .then(function(customText) {
-        if (!customText || customText.trim() === '') {
-          return null; // Don't show section if no content
-        }
+  // Card back section - shows approval table in the card details
+  'card-back-section': function(t, opts) {
+    return t.get('card', 'shared', 'approvals', null)
+    .then(function(approvalData) {
+      if (!approvalData || !approvalData.members) {
+        return null;
+      }
+      
+      // Check if current user is the creator
+      return t.member('id').then(function(currentUserId) {
+        var isCreator = (approvalData.createdBy === currentUserId.id);
         
-        // Use iframe without URL parameters - content will be loaded via t.get
-        return {
-          title: 'Custom Text Content',
-          icon: 'https://cdn.trello.com/power-ups/formatting/icon-gray.svg',
+        // Encode approval data and current user ID as URL parameters
+        var encodedData = encodeURIComponent(JSON.stringify(approvalData));
+        var encodedUserId = encodeURIComponent(currentUserId.id);
+        
+        var result = {
+          title: 'Approvals SM',
+          icon: './icon.png',
           content: {
             type: 'iframe',
-            url: t.signUrl('./card-back.html'),
-            height: 100
+            url: t.signUrl('./approval-section.html?data=' + encodedData + '&userId=' + encodedUserId)
           }
         };
-      })
-      .catch(function(error) {
-        console.error('Error in card-back-section:', error);
-        return null; // Hide section on error
-      });
-  },
 
-  // Card attachment section - shows text content in attachment area
-  'attachment-sections': function(t) {
-    return t.get('card', 'private', STORAGE_KEY)
-      .then(function(customText) {
-        if (!customText || customText.trim() === '') {
-          return []; // Don't show section if no content
+        if (isCreator) {
+          result.action = {
+            text: 'Reset all',
+            callback: function(t) {
+              // Show confirmation dialog directly
+              if (confirm('Are you sure you want to reset all approvals to pending status?\n\nThis action cannot be undone.')) {
+                resetAllApprovals(t);
+              }
+            }
+          };
         }
         
-        // Use t.signUrl for the iframe URL without parameters
-        return t.signUrl('./card-back.html')
-          .then(function(signedUrl) {
-            return [{
-              claimed: [{
-                icon: 'https://cdn.trello.com/power-ups/formatting/icon-gray.svg',
-                title: 'Custom Text Content',
-                content: {
-                  type: 'iframe',
-                  url: signedUrl,
-                  height: 100
-                }
-              }]
-            }];
-          });
-      })
-      .catch(function(error) {
-        console.error('Error in attachment-sections:', error);
-        return []; // Hide section on error
+        console.log('Final result object:', result);
+        return result;
       });
+    })
+    .catch(function(error) {
+      console.error('Error in card-back-section:', error);
+      return null;
+    });
+  },
+  
+  // Rest of your code remains the same...
+  'card-buttons': function(t, opts) {
+    return [{
+      icon: './icon.png',
+      text: 'Approvals SM',
+      callback: function(t) {
+        return t.popup({
+          title: 'Manage Approvals',
+          url: './manage-approvals.html',
+          height: 700,
+          callback: function(t, opts) {
+            // This callback runs when t.notifyParent('done') is called from the popup
+            // Card-back-section iframe will automatically reload due to t.set() changing pluginData
+            console.log('Manage approvals popup completed, card-back-section will auto-refresh');
+            return Promise.resolve();
+          }
+        });
+      }
+    }];
+  },
+  
+  'card-badges': function(t, opts) {
+    // Use the centralized badge logic
+    return TrelloApprovalBadges.getCardBadges(t, opts);
   }
 });
+
+function resetAllApprovals(t) {
+  console.log('🔄 Reset all approvals function called!');
+  
+  t.get('card', 'shared', 'approvals', null)
+  .then(function(approvalData) {
+    console.log('📄 Got approval data:', approvalData);
+    if (!approvalData || !approvalData.members) {
+      console.log('❌ No approval data or members found');
+      return;
+    }
+    
+    console.log('🔄 Resetting statuses for', Object.keys(approvalData.members).length, 'members');
+    // Reset all members to pending status
+    Object.keys(approvalData.members).forEach(function(memberId) {
+      console.log('Resetting member:', memberId, 'from', approvalData.members[memberId].status, 'to pending');
+      approvalData.members[memberId].status = 'pending';
+      approvalData.members[memberId].actionDate = new Date().toISOString();
+    });
+    
+    console.log('💾 Saving updated approval data...');
+    // Save the updated data
+    return t.set('card', 'shared', 'approvals', approvalData);
+  })
+  .then(function() {
+    console.log('✅ Data saved successfully!');
+    // Data change via t.set() will automatically refresh the card-back-section
+  })
+  .catch(function(error) {
+    console.error('❌ Error resetting approvals:', error);
+    alert('Failed to reset approvals. Please try again.');
+  });
+}
