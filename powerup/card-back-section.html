@@ -12,18 +12,59 @@
     <script>
         var t = window.TrelloPowerUp.iframe();
 
+        // Get all data from all scopes
         t.getAll()
-        .then(function (data) {
-            console.log(JSON.stringify(data, null, 2));
+        .then(function (allData) {
+            console.log('All data:', JSON.stringify(allData, null, 2));
 
-            var pre = document.createElement('pre');
-            pre.style.whiteSpace = 'pre-wrap';
-            pre.style.fontFamily = 'monospace';
-            pre.style.fontSize = '12px';
-            pre.textContent = JSON.stringify(data, null, 2);
-            document.getElementById('data-content').appendChild(pre);
+            var container = document.getElementById('data-content');
 
-            t.sizeTo('body');
+            // Display all data
+            var allDataHeader = document.createElement('h3');
+            allDataHeader.textContent = 'All Data (t.getAll()):';
+            container.appendChild(allDataHeader);
+
+            var allDataPre = document.createElement('pre');
+            allDataPre.style.whiteSpace = 'pre-wrap';
+            allDataPre.style.fontFamily = 'monospace';
+            allDataPre.style.fontSize = '12px';
+            allDataPre.style.marginBottom = '20px';
+            allDataPre.textContent = JSON.stringify(allData, null, 2);
+            container.appendChild(allDataPre);
+
+            // Get and display just card shared data
+            return t.get('card', 'shared').then(function(cardShared) {
+                console.log('Card shared data:', JSON.stringify(cardShared, null, 2));
+
+                var sharedHeader = document.createElement('h3');
+                sharedHeader.textContent = 'Card Shared Data (t.get(\'card\', \'shared\')):';
+                container.appendChild(sharedHeader);
+
+                var sharedPre = document.createElement('pre');
+                sharedPre.style.whiteSpace = 'pre-wrap';
+                sharedPre.style.fontFamily = 'monospace';
+                sharedPre.style.fontSize = '12px';
+                sharedPre.textContent = JSON.stringify(cardShared, null, 2);
+                container.appendChild(sharedPre);
+
+                // Display keys
+                var keysHeader = document.createElement('h3');
+                keysHeader.textContent = 'Available Keys:';
+                keysHeader.style.marginTop = '20px';
+                container.appendChild(keysHeader);
+
+                var keysList = document.createElement('pre');
+                keysList.style.whiteSpace = 'pre-wrap';
+                keysList.style.fontFamily = 'monospace';
+                keysList.style.fontSize = '12px';
+                var keys = cardShared ? Object.keys(cardShared) : [];
+                keysList.textContent = JSON.stringify(keys, null, 2);
+                container.appendChild(keysList);
+
+                console.log('Available keys:', keys);
+
+                t.sizeTo('body');
+            });
         })
         .catch(function(error) {
             console.error('Error loading plugin data:', error);
