@@ -11,17 +11,15 @@
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
     <script>
         var t = window.TrelloPowerUp.iframe();
+        var container = document.getElementById('data-content');
 
         // Get all data from all scopes
         t.getAll()
-        .then(function (allData) {
+          .then(function (allData) {
             console.log('All data:', JSON.stringify(allData, null, 2));
 
-            var container = document.getElementById('data-content');
-
-            // Display all data
             var allDataHeader = document.createElement('h3');
-            allDataHeader.textContent = 'All Data (t.getAll()):';
+            allDataHeader.textContent = 'All data:';
             container.appendChild(allDataHeader);
 
             var allDataPre = document.createElement('pre');
@@ -32,44 +30,91 @@
             allDataPre.textContent = JSON.stringify(allData, null, 2);
             container.appendChild(allDataPre);
 
-            // Get and display just card shared data
-            return t.get('card', 'shared').then(function(cardShared) {
-                console.log('Card shared data:', JSON.stringify(cardShared, null, 2));
+            t.sizeTo('body');
+          })
+          .catch(function(error) {
+            console.error('Error loading all data:', error);
+            var errorDiv = document.createElement('div');
+            errorDiv.textContent = 'Error loading all data: ' + error;
+            container.appendChild(errorDiv);
+          });
 
-                var sharedHeader = document.createElement('h3');
-                sharedHeader.textContent = 'Card Shared Data (t.get(\'card\', \'shared\')):';
-                container.appendChild(sharedHeader);
+        // Get and display just card shared data
+        t.get('card', 'shared')
+          .then(function(cardShared) {
+            console.log('Card shared data:', JSON.stringify(cardShared, null, 2));
 
-                var sharedPre = document.createElement('pre');
-                sharedPre.style.whiteSpace = 'pre-wrap';
-                sharedPre.style.fontFamily = 'monospace';
-                sharedPre.style.fontSize = '12px';
-                sharedPre.textContent = JSON.stringify(cardShared, null, 2);
-                container.appendChild(sharedPre);
+            var sharedHeader = document.createElement('h3');
+            sharedHeader.textContent = 'Card shared data:';
+            container.appendChild(sharedHeader);
 
-                // Display keys
-                var keysHeader = document.createElement('h3');
-                keysHeader.textContent = 'Available Keys:';
-                keysHeader.style.marginTop = '20px';
-                container.appendChild(keysHeader);
+            var sharedPre = document.createElement('pre');
+            sharedPre.style.whiteSpace = 'pre-wrap';
+            sharedPre.style.fontFamily = 'monospace';
+            sharedPre.style.fontSize = '12px';
+            sharedPre.style.marginBottom = '20px';
+            sharedPre.textContent = JSON.stringify(cardShared, null, 2);
+            container.appendChild(sharedPre);
 
-                var keysList = document.createElement('pre');
-                keysList.style.whiteSpace = 'pre-wrap';
-                keysList.style.fontFamily = 'monospace';
-                keysList.style.fontSize = '12px';
-                var keys = cardShared ? Object.keys(cardShared) : [];
-                keysList.textContent = JSON.stringify(keys, null, 2);
-                container.appendChild(keysList);
+            // Display keys
+            var keys = cardShared ? Object.keys(cardShared) : [];
+            var keysHeader = document.createElement('h3');
+            keysHeader.textContent = 'Available keys:';
+            container.appendChild(keysHeader);
 
-                console.log('Available keys:', keys);
+            var keysPre = document.createElement('pre');
+            keysPre.style.whiteSpace = 'pre-wrap';
+            keysPre.style.fontFamily = 'monospace';
+            keysPre.style.fontSize = '12px';
+            keysPre.style.marginBottom = '20px';
+            keysPre.textContent = JSON.stringify(keys, null, 2);
+            container.appendChild(keysPre);
 
-                t.sizeTo('body');
-            });
-        })
-        .catch(function(error) {
-            console.error('Error loading plugin data:', error);
-            document.getElementById('data-content').textContent = 'Error loading plugin data';
-        });
+            console.log('Available keys:', keys);
+
+            t.sizeTo('body');
+          })
+          .catch(function(error) {
+            console.error('Error loading card shared data:', error);
+            var errorDiv = document.createElement('div');
+            errorDiv.textContent = 'Error loading card shared data: ' + error;
+            container.appendChild(errorDiv);
+          });
+
+        // Get approvals data specifically
+        t.get('card', 'shared', 'approvals', null)
+          .then(function(approvalsData) {
+            if (approvalsData) {
+              console.log('Approvals data:', JSON.stringify(approvalsData, null, 2));
+
+              var approvalsHeader = document.createElement('h3');
+              approvalsHeader.textContent = 'Approvals data:';
+              container.appendChild(approvalsHeader);
+
+              var approvalsPre = document.createElement('pre');
+              approvalsPre.style.whiteSpace = 'pre-wrap';
+              approvalsPre.style.fontFamily = 'monospace';
+              approvalsPre.style.fontSize = '12px';
+              approvalsPre.style.marginBottom = '20px';
+              approvalsPre.textContent = JSON.stringify(approvalsData, null, 2);
+              container.appendChild(approvalsPre);
+            } else {
+              console.log('No approvals data found');
+
+              var noApprovalsDiv = document.createElement('div');
+              noApprovalsDiv.textContent = 'No approvals data found';
+              noApprovalsDiv.style.marginBottom = '20px';
+              container.appendChild(noApprovalsDiv);
+            }
+
+            t.sizeTo('body');
+          })
+          .catch(function(error) {
+            console.error('Error loading approvals data:', error);
+            var errorDiv = document.createElement('div');
+            errorDiv.textContent = 'Error loading approvals data: ' + error;
+            container.appendChild(errorDiv);
+          });
     </script>
 </body>
 </html>

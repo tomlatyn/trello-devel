@@ -6,20 +6,26 @@ TrelloPowerUp.initialize({
     t.getAll()
       .then(function (allData) {
         console.log('All data:', JSON.stringify(allData, null, 2));
-
-        // Get and display just card shared data
-        return t.get('card', 'shared');
       })
+      .catch(function(error) {
+        console.error('Error loading all data:', error);
+      });
+
+    // Get and display just card shared data
+    t.get('card', 'shared')
       .then(function(cardShared) {
         console.log('Card shared data:', JSON.stringify(cardShared, null, 2));
 
         // Display keys
         var keys = cardShared ? Object.keys(cardShared) : [];
         console.log('Available keys:', keys);
-
-        // Get approvals data specifically
-        return t.get('card', 'shared', 'approvals');
       })
+      .catch(function(error) {
+        console.error('Error loading card shared data:', error);
+      });
+
+    // Get approvals data specifically
+    t.get('card', 'shared', 'approvals', null)
       .then(function(approvalsData) {
         if (approvalsData) {
           console.log('Approvals data:', JSON.stringify(approvalsData, null, 2));
@@ -28,7 +34,7 @@ TrelloPowerUp.initialize({
         }
       })
       .catch(function(error) {
-        console.error('Error loading plugin data:', error);
+        console.error('Error loading approvals data:', error);
       });
 
     return {
