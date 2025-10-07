@@ -57,13 +57,36 @@
         .debug-title {
             font-weight: bold;
             margin-bottom: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .debug-title:hover {
+            color: #0079bf;
+        }
+        .collapsible-content {
+            max-height: 400px;
+            overflow-y: auto;
         }
         pre {
             white-space: pre-wrap;
             word-wrap: break-word;
             font-size: 11px;
-            max-height: 200px;
-            overflow-y: auto;
+            background: white;
+            padding: 8px;
+            border-radius: 3px;
+            margin: 4px 0;
+        }
+        .card-data-block {
+            margin-bottom: 16px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 8px;
+            background: white;
+        }
+        .card-data-title {
+            font-weight: bold;
+            color: #172b4d;
+            margin-bottom: 4px;
         }
     </style>
 </head>
@@ -79,8 +102,10 @@
         <div class="card-list" id="card-list"></div>
         
         <div class="debug-section">
-            <div class="debug-title">Debug Information:</div>
-            <div id="debug-info"></div>
+            <div class="debug-title" onclick="toggleDebug()">🔍 Click to show/hide Debug Information</div>
+            <div id="debug-content" class="collapsible-content" style="display: none;">
+                <div id="debug-info"></div>
+            </div>
         </div>
     </div>
     
@@ -89,31 +114,46 @@
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
     <script>
         var t = window.TrelloPowerUp.iframe();
+        var Promise = window.TrelloPowerUp.Promise;
         
-        function extractHoursFromBadges(badges) {
+        function toggleDebug() {
+            var debugContent = document.getElementById('debug-content');
+            if (debugContent.style.display === 'none') {
+                debugContent.style.display = 'block';
+            } else {
+                debugContent.style.display = 'none';
+            }
+            t.sizeTo('body');
+        }
+        
+        function extractHoursFromBadges(badges, pluginData) {
             // This is where you need to customize based on the third-party power-up
-            console.log('Badge structure:', JSON.stringify(badges, null, 2));
+            console.log('=== ANALYZING CARD DATA ===');
+            console.log('Badges:', JSON.stringify(badges, null, 2));
+            console.log('Plugin Data:', JSON.stringify(pluginData, null, 2));
             
             // Common patterns to check:
             
             // 1. Custom Fields (most estimation power-ups use this)
-            if (badges.customFieldItems && badges.customFieldItems.length > 0) {
-                // Look for a field that might contain hours
-                for (var i = 0; i < badges.customFieldItems.length; i++) {
-                    var field = badges.customFieldItems[i];
-                    console.log('Custom field:', field);
-                    // You might need to parse the value
+            if (badges && badges.customFieldItems && badges.customFieldItems.length > 0) {
+                console.log('Found custom field items:', badges.customFieldItems);
+                // You might need to parse the value
+            }
+            
+            // 2. Check plugin data for hours
+            if (pluginData && Array.isArray(pluginData)) {
+                for (var i = 0; i < pluginData.length; i++) {
+                    var plugin = pluginData[i];
+                    console.log('Plugin ' + i + ':', plugin);
+                    if (plugin.value) {
+                        console.log('Plugin value:', plugin.value);
+                    }
                 }
             }
             
-            // 2. Attachments (some power-ups store data here)
-            if (badges.attachments > 0) {
+            // 3. Attachments (some power-ups store data here)
+            if (badges && badges.attachments > 0) {
                 console.log('Has attachments:', badges.attachments);
-            }
-            
-            // 3. Description parsing (if hours in description)
-            if (badges.description) {
-                console.log('Has description');
             }
             
             // Return null if no hours found
@@ -122,48 +162,92 @@
         
         function loadBoardHours() {
             var debugInfo = [];
+            var allCardsData = [];
             
-            // Use t.lists() which works without special permissions
-            t.lists('id', 'name', 'cards')
+            // Get the board context first
+            t.getContext()
+                .then(function(context) {
+                    debugInfo.push('Context: ' + JSON.stringify(context, null, 2));
+                    
+                    // Use t.lists() which works from board button context
+                    return t.lists('all');
+                })
                 .then(function(lists) {
                     debugInfo.push('Found ' + lists.length + ' lists');
                     
                     // Flatten all cards from all lists
                     var allCards = [];
                     lists.forEach(function(list) {
+                        debugInfo.push('\nList: ' + list.name);
                         if (list.cards && list.cards.length > 0) {
+                            debugInfo.push('  Cards in list: ' + list.cards.length);
                             list.cards.forEach(function(card) {
-                                allCards.push(card);
+                                allCards.push({
+                                    id: card.id,
+                                    name: card.name,
+                                    listName: list.name
+                                });
                             });
                         }
                     });
                     
-                    debugInfo.push('Found ' + allCards.length + ' cards total');
+                    debugInfo.push('\n📊 Total cards found: ' + allCards.length);
                     
                     if (allCards.length === 0) {
                         throw new Error('No cards found on this board');
                     }
                     
-                    // Now get badge data for each card
+                    // Get detailed data for each card using REST API approach
                     var cardPromises = allCards.map(function(card) {
-                        return t.card(card.id)
-                            .get('id', 'name', 'badges')
+                        // Try to get all available card data
+                        return t.getRestApi()
+                            .then(function(api) {
+                                return Promise.all([
+                                    api.getToken(),
+                                    Promise.resolve(api)
+                                ]);
+                            })
+                            .then(function(results) {
+                                var token = results[0];
+                                var api = results[1];
+                                var appKey = 'your_app_key'; // This might not be needed
+                                
+                                // Fetch full card data from Trello API
+                                var url = 'https://api.trello.com/1/cards/' + card.id + 
+                                         '?pluginData=true&customFieldItems=true&fields=all';
+                                
+                                return fetch(url + '&token=' + token)
+                                    .then(function(response) {
+                                        return response.json();
+                                    });
+                            })
                             .then(function(cardData) {
-                                debugInfo.push('\n--- Card: ' + cardData.name + ' ---');
-                                debugInfo.push('Badges: ' + JSON.stringify(cardData.badges, null, 2));
+                                allCardsData.push({
+                                    name: card.name,
+                                    listName: card.listName,
+                                    fullData: cardData
+                                });
+                                
+                                var hours = extractHoursFromBadges(cardData.badges, cardData.pluginData);
                                 
                                 return {
-                                    name: cardData.name,
+                                    name: card.name,
+                                    listName: card.listName,
                                     badges: cardData.badges,
-                                    hours: extractHoursFromBadges(cardData.badges)
+                                    pluginData: cardData.pluginData,
+                                    customFieldItems: cardData.customFieldItems,
+                                    hours: hours
                                 };
                             })
                             .catch(function(error) {
-                                debugInfo.push('Error reading card ' + card.name + ': ' + error.message);
+                                debugInfo.push('\n❌ Error reading card ' + card.name + ': ' + error.message);
                                 return {
                                     name: card.name,
+                                    listName: card.listName,
                                     badges: null,
-                                    hours: null
+                                    pluginData: null,
+                                    hours: null,
+                                    error: error.message
                                 };
                             });
                     });
@@ -175,6 +259,7 @@
                     var cardListEl = document.getElementById('card-list');
                     var cardsWithHours = 0;
                     
+                    // Display hours summary
                     cards.forEach(function(card) {
                         var hours = card.hours;
                         
@@ -187,7 +272,7 @@
                             
                             var cardName = document.createElement('div');
                             cardName.className = 'card-name';
-                            cardName.textContent = card.name;
+                            cardName.textContent = card.name + ' (' + card.listName + ')';
                             
                             var cardHours = document.createElement('div');
                             cardHours.className = 'card-hours';
@@ -200,19 +285,45 @@
                     });
                     
                     if (cardsWithHours === 0) {
-                        debugInfo.push('\n⚠️ NO HOURS FOUND ON ANY CARD');
-                        debugInfo.push('Check the badge structures above to see what data is available');
-                        
                         var noHoursMsg = document.createElement('div');
                         noHoursMsg.style.padding = '20px';
                         noHoursMsg.style.textAlign = 'center';
                         noHoursMsg.style.color = '#5e6c84';
-                        noHoursMsg.textContent = 'No hours data found. Check the debug section below to see what badge data is available.';
+                        noHoursMsg.textContent = 'No hours data found. Check the debug section below to see all card data.';
                         cardListEl.appendChild(noHoursMsg);
                     }
                     
                     document.getElementById('total-hours').textContent = totalHours.toFixed(1);
-                    document.getElementById('debug-info').innerHTML = '<pre>' + debugInfo.join('\n') + '</pre>';
+                    
+                    // Build comprehensive debug output
+                    var debugOutput = debugInfo.join('\n') + '\n\n';
+                    
+                    debugOutput += '='.repeat(60) + '\n';
+                    debugOutput += '📋 COMPLETE CARD DATA STRUCTURE\n';
+                    debugOutput += '='.repeat(60) + '\n\n';
+                    
+                    if (allCardsData.length > 0) {
+                        allCardsData.forEach(function(cardData, index) {
+                            debugOutput += '\n' + '─'.repeat(60) + '\n';
+                            debugOutput += '🃏 CARD ' + (index + 1) + ': ' + cardData.name + '\n';
+                            debugOutput += 'List: ' + cardData.listName + '\n';
+                            debugOutput += '─'.repeat(60) + '\n';
+                            debugOutput += JSON.stringify(cardData.fullData, null, 2) + '\n';
+                        });
+                    }
+                    
+                    debugOutput += '\n' + '='.repeat(60) + '\n';
+                    
+                    if (cardsWithHours === 0) {
+                        debugOutput += '\n⚠️ NO HOURS FOUND ON ANY CARD\n';
+                        debugOutput += 'Look through the card data above to find where the third-party power-up stores hours.\n';
+                        debugOutput += 'Common locations:\n';
+                        debugOutput += '  - pluginData array\n';
+                        debugOutput += '  - customFieldItems array\n';
+                        debugOutput += '  - badges object\n';
+                    }
+                    
+                    document.getElementById('debug-info').innerHTML = '<pre>' + debugOutput + '</pre>';
                     
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('content').style.display = 'block';
