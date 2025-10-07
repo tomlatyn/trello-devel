@@ -1,0 +1,20 @@
+{
+  "name": "Hours Calculator",
+  "details": "Calculate total hours from cards",
+  "icon": {
+    "url": "./icon.png"
+  },
+  "author": "Your Name",
+  "capabilities": [
+    "board-buttons"
+  ],
+  "connectors": {
+    "iframe": {
+      "url": "./index.html"
+    }
+  },
+  "scopes": [
+    "board:read",
+    "card:read"
+  ]
+}
