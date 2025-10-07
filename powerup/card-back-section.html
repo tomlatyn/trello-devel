@@ -10,28 +10,25 @@
     
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
     <script>
-        var t = TrelloPowerUp.iframe();
+        var t = window.TrelloPowerUp.iframe();
 
-        var urlParams = new URLSearchParams(window.location.search);
-        var dataParam = urlParams.get('data');
+        t.getAll()
+        .then(function (data) {
+            console.log(JSON.stringify(data, null, 2));
 
-        if (dataParam) {
-            try {
-                var cardData = JSON.parse(decodeURIComponent(dataParam));
-                var pre = document.createElement('pre');
-                pre.style.whiteSpace = 'pre-wrap';
-                pre.style.fontFamily = 'monospace';
-                pre.style.fontSize = '12px';
-                pre.textContent = JSON.stringify(cardData, null, 2);
-                document.getElementById('data-content').appendChild(pre);
-            } catch (error) {
-                document.getElementById('data-content').textContent = 'Error loading card data';
-            }
-        } else {
-            document.getElementById('data-content').textContent = 'No data available';
-        }
+            var pre = document.createElement('pre');
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.style.fontFamily = 'monospace';
+            pre.style.fontSize = '12px';
+            pre.textContent = JSON.stringify(data, null, 2);
+            document.getElementById('data-content').appendChild(pre);
 
-        t.sizeTo('body');
+            t.sizeTo('body');
+        })
+        .catch(function(error) {
+            console.error('Error loading plugin data:', error);
+            document.getElementById('data-content').textContent = 'Error loading plugin data';
+        });
     </script>
 </body>
 </html>
