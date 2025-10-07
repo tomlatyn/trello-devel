@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Card Data Inspector</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            padding: 16px;
+            margin: 0;
+            background: #f4f5f7;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .section {
+            background: white;
+            border-radius: 3px;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            font-weight: bold;
+            color: #172b4d;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #0079bf;
+            cursor: pointer;
+            user-select: none;
+        }
+        .section-title:hover {
+            color: #0079bf;
+        }
+        .section-content {
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #f4f5f7;
+            padding: 8px;
+            border-radius: 3px;
+            margin: 0;
+            font-size: 11px;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        .error {
+            color: #eb5a46;
+            padding: 10px;
+            background: #ffebe6;
+            border-radius: 3px;
+        }
+        .tip {
+            background: #e3fcef;
+            padding: 10px;
+            border-radius: 3px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #0079bf;
+            color: white;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <p>Loading card data...</p>
+    </div>
+    
+    <div id="content" style="display: none;"></div>
+    <div id="error" class="error" style="display: none;"></div>
+    
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <script>
+        var t = window.TrelloPowerUp.iframe();
+        
+        function toggleSection(sectionId) {
+            var content = document.getElementById(sectionId);
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+            } else {
+                content.style.display = 'none';
+            }
+            t.sizeTo('body');
+        }
+        
+        function createSection(title, content, id, badge) {
+            var section = document.createElement('div');
+            section.className = 'section';
+            
+            var titleEl = document.createElement('div');
+            titleEl.className = 'section-title';
+            titleEl.onclick = function() { toggleSection(id); };
+            titleEl.innerHTML = title + (badge ? '<span class="badge">' + badge + '</span>' : '');
+            
+            var contentEl = document.createElement('div');
+            contentEl.id = id;
+            contentEl.className = 'section-content';
+            contentEl.style.display = 'none';
+            
+            if (typeof content === 'object') {
+                var pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(content, null, 2);
+                contentEl.appendChild(pre);
+            } else {
+                contentEl.innerHTML = content;
+            }
+            
+            section.appendChild(titleEl);
+            section.appendChild(contentEl);
+            
+            return section;
+        }
+        
+        function loadCardData() {
+            var container = document.getElementById('content');
+            
+            // Request ALL available card data
+            t.card('all')
+                .then(function(card) {
+                    console.log('=== COMPLETE CARD DATA ===');
+                    console.log(card);
+                    
+                    // Card Basic Info
+                    container.appendChild(createSection(
+                        '📋 Basic Info',
+                        {
+                            id: card.id,
+                            name: card.name,
+                            desc: card.desc,
+                            closed: card.closed,
+                            url: card.url
+                        },
+                        'basic-info'
+                    ));
+                    
+                    // Plugin Data - THIS IS WHERE OTHER POWER-UPS STORE DATA
+                    var pluginDataCount = card.pluginData ? card.pluginData.length : 0;
+                    container.appendChild(createSection(
+                        '🔌 Plugin Data (Other Power-Ups)',
+                        card.pluginData || 'No plugin data found',
+                        'plugin-data',
+                        pluginDataCount > 0 ? pluginDataCount + ' items' : null
+                    ));
+                    
+                    // Custom Fields
+                    var customFieldsCount = card.customFieldItems ? card.customFieldItems.length : 0;
+                    container.appendChild(createSection(
+                        '📝 Custom Fields',
+                        card.customFieldItems || 'No custom fields',
+                        'custom-fields',
+                        customFieldsCount > 0 ? customFieldsCount + ' fields' : null
+                    ));
+                    
+                    // Badges (includes counts, attachments, etc.)
+                    container.appendChild(createSection(
+                        '🏷️ Badges',
+                        card.badges || 'No badges',
+                        'badges'
+                    ));
+                    
+                    // Labels
+                    var labelsCount = card.labels ? card.labels.length : 0;
+                    container.appendChild(createSection(
+                        '🏳️ Labels',
+                        card.labels || 'No labels',
+                        'labels',
+                        labelsCount > 0 ? labelsCount + ' labels' : null
+                    ));
+                    
+                    // Members
+                    var membersCount = card.members ? card.members.length : 0;
+                    container.appendChild(createSection(
+                        '👥 Members',
+                        card.members || 'No members',
+                        'members',
+                        membersCount > 0 ? membersCount + ' members' : null
+                    ));
+                    
+                    // Attachments
+                    var attachmentsCount = card.attachments ? card.attachments.length : 0;
+                    container.appendChild(createSection(
+                        '📎 Attachments',
+                        card.attachments || 'No attachments',
+                        'attachments',
+                        attachmentsCount > 0 ? attachmentsCount + ' files' : null
+                    ));
+                    
+                    // Complete Raw Data
+                    container.appendChild(createSection(
+                        '🔍 Complete Raw Data',
+                        card,
+                        'raw-data'
+                    ));
+                    
+                    // Add tip
+                    var tip = document.createElement('div');
+                    tip.className = 'tip';
+                    tip.innerHTML = '<strong>💡 Tip:</strong> Click on any section title to expand/collapse it. ' +
+                        'Look for <span class="highlight">pluginData</span> to see data from other Power-Ups. ' +
+                        'If you see numeric values that look like hours, note their location!';
+                    container.appendChild(tip);
+                    
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('content').style.display = 'block';
+                    t.sizeTo('body');
+                })
+                .catch(function(error) {
+                    console.error('Error loading card data:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('error').style.display = 'block';
+                    document.getElementById('error').innerHTML = '<strong>Error:</strong> ' + error.message + 
+                        '<br><br>Check the browser console for more details.';
+                    t.sizeTo('body');
+                });
+        }
+        
+        loadCardData();
+    </script>
+</body>
+</html>

@@ -6,7 +6,8 @@
   },
   "author": "Your Name",
   "capabilities": [
-    "board-buttons"
+    "board-buttons",
+    "card-buttons"
   ],
   "connectors": {
     "iframe": {
