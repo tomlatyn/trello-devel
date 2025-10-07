@@ -76,17 +76,17 @@
             border-radius: 3px;
             margin: 4px 0;
         }
-        .card-data-block {
-            margin-bottom: 16px;
+        .card-debug {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
             border: 1px solid #ddd;
             border-radius: 3px;
-            padding: 8px;
-            background: white;
         }
-        .card-data-title {
+        .card-debug-title {
             font-weight: bold;
             color: #172b4d;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
     </style>
 </head>
@@ -102,7 +102,7 @@
         <div class="card-list" id="card-list"></div>
         
         <div class="debug-section">
-            <div class="debug-title" onclick="toggleDebug()">🔍 Click to show/hide Debug Information</div>
+            <div class="debug-title" onclick="toggleDebug()">🔍 Click to show/hide Complete Card Data</div>
             <div id="debug-content" class="collapsible-content" style="display: none;">
                 <div id="debug-info"></div>
             </div>
@@ -126,59 +126,64 @@
             t.sizeTo('body');
         }
         
-        function extractHoursFromBadges(badges, pluginData) {
-            // This is where you need to customize based on the third-party power-up
-            console.log('=== ANALYZING CARD DATA ===');
-            console.log('Badges:', JSON.stringify(badges, null, 2));
-            console.log('Plugin Data:', JSON.stringify(pluginData, null, 2));
+        function extractHoursFromCard(cardData) {
+            console.log('=== ANALYZING CARD ===');
+            console.log('Card name:', cardData.name);
+            console.log('Full card data:', cardData);
             
-            // Common patterns to check:
+            // Check all possible locations for hours
             
-            // 1. Custom Fields (most estimation power-ups use this)
-            if (badges && badges.customFieldItems && badges.customFieldItems.length > 0) {
-                console.log('Found custom field items:', badges.customFieldItems);
-                // You might need to parse the value
-            }
-            
-            // 2. Check plugin data for hours
-            if (pluginData && Array.isArray(pluginData)) {
-                for (var i = 0; i < pluginData.length; i++) {
-                    var plugin = pluginData[i];
-                    console.log('Plugin ' + i + ':', plugin);
-                    if (plugin.value) {
-                        console.log('Plugin value:', plugin.value);
-                    }
+            // 1. Check if hours are in the card name (e.g., "(5h) Task name")
+            if (cardData.name) {
+                var nameMatch = cardData.name.match(/\((\d+(?:\.\d+)?)\s*h?\)/i);
+                if (nameMatch) {
+                    console.log('Found hours in card name:', nameMatch[1]);
+                    return parseFloat(nameMatch[1]);
                 }
             }
             
-            // 3. Attachments (some power-ups store data here)
-            if (badges && badges.attachments > 0) {
-                console.log('Has attachments:', badges.attachments);
+            // 2. Check badges (where third-party power-ups usually show data)
+            if (cardData.badges) {
+                console.log('Badges:', JSON.stringify(cardData.badges, null, 2));
+                
+                // Check for custom field items
+                if (cardData.badges.customFieldItems) {
+                    console.log('Custom field items:', cardData.badges.customFieldItems);
+                }
             }
             
-            // Return null if no hours found
+            // 3. Check plugin data
+            if (cardData.pluginData) {
+                console.log('Plugin data:', JSON.stringify(cardData.pluginData, null, 2));
+            }
+            
+            // 4. Check shared plugin data
+            if (cardData.shared) {
+                console.log('Shared data:', JSON.stringify(cardData.shared, null, 2));
+            }
+            
             return null;
         }
         
         function loadBoardHours() {
-            var debugInfo = [];
-            var allCardsData = [];
+            var debugOutput = '';
+            var allCardsDebug = [];
             
-            // Get the board context first
-            var context = t.getContext();
-            debugInfo.push('Context: ' + JSON.stringify(context, null, 2));
+            debugOutput += '='.repeat(60) + '\n';
+            debugOutput += '🔍 BOARD ANALYSIS STARTED\n';
+            debugOutput += '='.repeat(60) + '\n\n';
             
             // Use t.lists() which works from board button context
             t.lists('all')
                 .then(function(lists) {
-                    debugInfo.push('Found ' + lists.length + ' lists');
+                    debugOutput += 'Found ' + lists.length + ' lists\n\n';
                     
                     // Flatten all cards from all lists
                     var allCards = [];
                     lists.forEach(function(list) {
-                        debugInfo.push('\nList: ' + list.name);
+                        debugOutput += 'List: ' + list.name + '\n';
                         if (list.cards && list.cards.length > 0) {
-                            debugInfo.push('  Cards in list: ' + list.cards.length);
+                            debugOutput += '  Cards: ' + list.cards.length + '\n';
                             list.cards.forEach(function(card) {
                                 allCards.push({
                                     id: card.id,
@@ -187,66 +192,32 @@
                                 });
                             });
                         }
+                        debugOutput += '\n';
                     });
                     
-                    debugInfo.push('\n📊 Total cards found: ' + allCards.length);
+                    debugOutput += '📊 Total cards: ' + allCards.length + '\n\n';
                     
                     if (allCards.length === 0) {
                         throw new Error('No cards found on this board');
                     }
                     
-                    // Get detailed data for each card using REST API approach
+                    // Get all data for each card
                     var cardPromises = allCards.map(function(card) {
-                        // Try to get all available card data
-                        return t.getRestApi()
-                            .then(function(api) {
-                                return Promise.all([
-                                    api.getToken(),
-                                    Promise.resolve(api)
-                                ]);
-                            })
-                            .then(function(results) {
-                                var token = results[0];
-                                var api = results[1];
-                                var appKey = 'your_app_key'; // This might not be needed
-                                
-                                // Fetch full card data from Trello API
-                                var url = 'https://api.trello.com/1/cards/' + card.id + 
-                                         '?pluginData=true&customFieldItems=true&fields=all';
-                                
-                                return fetch(url + '&token=' + token)
-                                    .then(function(response) {
-                                        return response.json();
-                                    });
-                            })
-                            .then(function(cardData) {
-                                allCardsData.push({
-                                    name: card.name,
-                                    listName: card.listName,
-                                    fullData: cardData
-                                });
-                                
-                                var hours = extractHoursFromBadges(cardData.badges, cardData.pluginData);
-                                
-                                return {
-                                    name: card.name,
-                                    listName: card.listName,
-                                    badges: cardData.badges,
-                                    pluginData: cardData.pluginData,
-                                    customFieldItems: cardData.customFieldItems,
-                                    hours: hours
-                                };
+                        // Get all available data from the card
+                        return t.cards(card.id)
+                            .then(function(cards) {
+                                // cards() might return array, get first item
+                                var cardData = Array.isArray(cards) ? cards[0] : cards;
+                                return cardData;
                             })
                             .catch(function(error) {
-                                debugInfo.push('\n❌ Error reading card ' + card.name + ': ' + error.message);
-                                return {
+                                // Try alternative method - get card data piece by piece
+                                return Promise.resolve({
+                                    id: card.id,
                                     name: card.name,
                                     listName: card.listName,
-                                    badges: null,
-                                    pluginData: null,
-                                    hours: null,
                                     error: error.message
-                                };
+                                });
                             });
                     });
                     
@@ -257,12 +228,24 @@
                     var cardListEl = document.getElementById('card-list');
                     var cardsWithHours = 0;
                     
-                    // Display hours summary
-                    cards.forEach(function(card) {
-                        var hours = card.hours;
+                    debugOutput += '='.repeat(60) + '\n';
+                    debugOutput += '📋 CARD DATA ANALYSIS\n';
+                    debugOutput += '='.repeat(60) + '\n\n';
+                    
+                    // Analyze each card
+                    cards.forEach(function(cardData, index) {
+                        var cardDebug = '─'.repeat(60) + '\n';
+                        cardDebug += '🃏 CARD ' + (index + 1) + ': ' + (cardData.name || 'Unknown') + '\n';
+                        cardDebug += '─'.repeat(60) + '\n';
+                        cardDebug += 'Complete card object:\n';
+                        cardDebug += JSON.stringify(cardData, null, 2) + '\n\n';
+                        
+                        allCardsDebug.push(cardDebug);
+                        
+                        var hours = extractHoursFromCard(cardData);
                         
                         if (hours !== null && hours !== undefined) {
-                            totalHours += parseFloat(hours);
+                            totalHours += hours;
                             cardsWithHours++;
                             
                             var cardItem = document.createElement('div');
@@ -270,7 +253,7 @@
                             
                             var cardName = document.createElement('div');
                             cardName.className = 'card-name';
-                            cardName.textContent = card.name + ' (' + card.listName + ')';
+                            cardName.textContent = cardData.name;
                             
                             var cardHours = document.createElement('div');
                             cardHours.className = 'card-hours';
@@ -287,39 +270,24 @@
                         noHoursMsg.style.padding = '20px';
                         noHoursMsg.style.textAlign = 'center';
                         noHoursMsg.style.color = '#5e6c84';
-                        noHoursMsg.textContent = 'No hours data found. Check the debug section below to see all card data.';
+                        noHoursMsg.innerHTML = 'No hours data found.<br>Click "Show Complete Card Data" below to inspect the data structure.';
                         cardListEl.appendChild(noHoursMsg);
+                        
+                        debugOutput += '\n⚠️ NO HOURS FOUND\n';
+                        debugOutput += 'Review the card data below to find where hours are stored.\n\n';
                     }
                     
                     document.getElementById('total-hours').textContent = totalHours.toFixed(1);
                     
-                    // Build comprehensive debug output
-                    var debugOutput = debugInfo.join('\n') + '\n\n';
-                    
-                    debugOutput += '='.repeat(60) + '\n';
-                    debugOutput += '📋 COMPLETE CARD DATA STRUCTURE\n';
-                    debugOutput += '='.repeat(60) + '\n\n';
-                    
-                    if (allCardsData.length > 0) {
-                        allCardsData.forEach(function(cardData, index) {
-                            debugOutput += '\n' + '─'.repeat(60) + '\n';
-                            debugOutput += '🃏 CARD ' + (index + 1) + ': ' + cardData.name + '\n';
-                            debugOutput += 'List: ' + cardData.listName + '\n';
-                            debugOutput += '─'.repeat(60) + '\n';
-                            debugOutput += JSON.stringify(cardData.fullData, null, 2) + '\n';
-                        });
-                    }
+                    // Combine all debug info
+                    debugOutput += allCardsDebug.join('\n');
                     
                     debugOutput += '\n' + '='.repeat(60) + '\n';
-                    
-                    if (cardsWithHours === 0) {
-                        debugOutput += '\n⚠️ NO HOURS FOUND ON ANY CARD\n';
-                        debugOutput += 'Look through the card data above to find where the third-party power-up stores hours.\n';
-                        debugOutput += 'Common locations:\n';
-                        debugOutput += '  - pluginData array\n';
-                        debugOutput += '  - customFieldItems array\n';
-                        debugOutput += '  - badges object\n';
-                    }
+                    debugOutput += '💡 TIPS:\n';
+                    debugOutput += '- Look for "pluginData" arrays\n';
+                    debugOutput += '- Check "badges" object for custom fields\n';
+                    debugOutput += '- Search for numeric values that might be hours\n';
+                    debugOutput += '='.repeat(60) + '\n';
                     
                     document.getElementById('debug-info').innerHTML = '<pre>' + debugOutput + '</pre>';
                     
@@ -332,7 +300,7 @@
                     console.error('Error loading hours:', error);
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('error').style.display = 'block';
-                    document.getElementById('error').textContent = 'Error: ' + error.message;
+                    document.getElementById('error').textContent = 'Error: ' + error.message + '\n\nCheck browser console for details.';
                     t.sizeTo('body');
                 });
         }
