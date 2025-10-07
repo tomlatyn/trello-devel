@@ -62,6 +62,8 @@
             white-space: pre-wrap;
             word-wrap: break-word;
             font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -121,20 +123,47 @@
         function loadBoardHours() {
             var debugInfo = [];
             
-            t.board('cards')
-                .then(function(board) {
-                    debugInfo.push('Found ' + board.cards.length + ' cards on board');
+            // Use t.lists() which works without special permissions
+            t.lists('id', 'name', 'cards')
+                .then(function(lists) {
+                    debugInfo.push('Found ' + lists.length + ' lists');
                     
-                    var cardPromises = board.cards.map(function(card) {
-                        return t.card(card.id, 'badges', 'name')
+                    // Flatten all cards from all lists
+                    var allCards = [];
+                    lists.forEach(function(list) {
+                        if (list.cards && list.cards.length > 0) {
+                            list.cards.forEach(function(card) {
+                                allCards.push(card);
+                            });
+                        }
+                    });
+                    
+                    debugInfo.push('Found ' + allCards.length + ' cards total');
+                    
+                    if (allCards.length === 0) {
+                        throw new Error('No cards found on this board');
+                    }
+                    
+                    // Now get badge data for each card
+                    var cardPromises = allCards.map(function(card) {
+                        return t.card(card.id)
+                            .get('id', 'name', 'badges')
                             .then(function(cardData) {
-                                debugInfo.push('Card: ' + cardData.name);
+                                debugInfo.push('\n--- Card: ' + cardData.name + ' ---');
                                 debugInfo.push('Badges: ' + JSON.stringify(cardData.badges, null, 2));
                                 
                                 return {
                                     name: cardData.name,
                                     badges: cardData.badges,
                                     hours: extractHoursFromBadges(cardData.badges)
+                                };
+                            })
+                            .catch(function(error) {
+                                debugInfo.push('Error reading card ' + card.name + ': ' + error.message);
+                                return {
+                                    name: card.name,
+                                    badges: null,
+                                    hours: null
                                 };
                             });
                     });
@@ -144,12 +173,14 @@
                 .then(function(cards) {
                     var totalHours = 0;
                     var cardListEl = document.getElementById('card-list');
+                    var cardsWithHours = 0;
                     
                     cards.forEach(function(card) {
                         var hours = card.hours;
                         
                         if (hours !== null && hours !== undefined) {
                             totalHours += parseFloat(hours);
+                            cardsWithHours++;
                             
                             var cardItem = document.createElement('div');
                             cardItem.className = 'card-item';
@@ -168,6 +199,18 @@
                         }
                     });
                     
+                    if (cardsWithHours === 0) {
+                        debugInfo.push('\n⚠️ NO HOURS FOUND ON ANY CARD');
+                        debugInfo.push('Check the badge structures above to see what data is available');
+                        
+                        var noHoursMsg = document.createElement('div');
+                        noHoursMsg.style.padding = '20px';
+                        noHoursMsg.style.textAlign = 'center';
+                        noHoursMsg.style.color = '#5e6c84';
+                        noHoursMsg.textContent = 'No hours data found. Check the debug section below to see what badge data is available.';
+                        cardListEl.appendChild(noHoursMsg);
+                    }
+                    
                     document.getElementById('total-hours').textContent = totalHours.toFixed(1);
                     document.getElementById('debug-info').innerHTML = '<pre>' + debugInfo.join('\n') + '</pre>';
                     
@@ -181,6 +224,7 @@
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('error').style.display = 'block';
                     document.getElementById('error').textContent = 'Error: ' + error.message;
+                    t.sizeTo('body');
                 });
         }
         
