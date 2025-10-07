@@ -129,18 +129,27 @@
         function loadCardData() {
             var container = document.getElementById('content');
             
-            // Request ALL available card data INCLUDING all shared data
+            // Try MULTIPLE methods to get ALL data
             Promise.all([
-                t.card('all'),
-                t.getAll()  // This gets ALL data including shared from all power-ups
+                t.card('all'),           // Standard card data
+                t.getAll(),              // All stored data (our own + shared)
+                t.get('card', 'shared'), // Specifically get all shared data
+                t.get('card'),           // Get all card-scoped data
+                t.getContext()           // Get context info
             ])
                 .then(function(results) {
                     var card = results[0];
                     var allData = results[1];
+                    var sharedOnly = results[2];
+                    var cardScope = results[3];
+                    var context = results[4];
                     
                     console.log('=== COMPLETE CARD DATA ===');
-                    console.log('Card:', card);
-                    console.log('All Data (includes shared):', allData);
+                    console.log('1. t.card("all"):', card);
+                    console.log('2. t.getAll():', allData);
+                    console.log('3. t.get("card", "shared"):', sharedOnly);
+                    console.log('4. t.get("card"):', cardScope);
+                    console.log('5. t.getContext():', context);
                     
                     // Card Basic Info
                     container.appendChild(createSection(
