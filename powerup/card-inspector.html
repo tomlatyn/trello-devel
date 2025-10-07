@@ -129,21 +129,18 @@
         function loadCardData() {
             var container = document.getElementById('content');
             
-            // Request ALL available card data INCLUDING shared plugin data
+            // Request ALL available card data INCLUDING all shared data
             Promise.all([
                 t.card('all'),
-                t.get('card', 'shared'),
-                t.getAll()
+                t.getAll()  // This gets ALL data including shared from all power-ups
             ])
                 .then(function(results) {
                     var card = results[0];
-                    var sharedData = results[1];
-                    var allData = results[2];
+                    var allData = results[1];
                     
                     console.log('=== COMPLETE CARD DATA ===');
                     console.log('Card:', card);
-                    console.log('Shared Data:', sharedData);
-                    console.log('All Data:', allData);
+                    console.log('All Data (includes shared):', allData);
                     
                     // Card Basic Info
                     container.appendChild(createSection(
@@ -172,6 +169,22 @@
                         pluginDataContent,
                         'plugin-data',
                         pluginDataCount > 0 ? pluginDataCount + ' items' : null
+                    ));
+                    
+                    // Shared Data - THE KEY SECTION - All power-up data
+                    var sharedDataContent = '';
+                    if (allData && allData.card && allData.card.shared) {
+                        sharedDataContent = '<div style="margin-bottom: 10px;"><strong>🎯 THIS IS WHERE "ANOTHER POWER UP" STORES DATA!</strong></div>';
+                        sharedDataContent += '<div style="margin-bottom: 10px; padding: 8px; background: #fff3cd; border-radius: 3px;">Look for keys that might contain "size", "spent", "remaining" or the numbers 5, 2, 3</div>';
+                        sharedDataContent += '<pre>' + JSON.stringify(allData.card.shared, null, 2) + '</pre>';
+                    } else {
+                        sharedDataContent = '<pre>' + JSON.stringify(allData, null, 2) + '</pre>';
+                    }
+                    container.appendChild(createSection(
+                        '🔗 Shared Data from ALL Power-Ups ⭐⭐⭐',
+                        sharedDataContent,
+                        'shared-data',
+                        'MOST IMPORTANT'
                     ));
                     
                     // Custom Fields - EXPANDED VIEW
@@ -234,11 +247,11 @@
                     // Add tip
                     var tip = document.createElement('div');
                     tip.className = 'tip';
-                    tip.innerHTML = '<strong>💡 Looking for "Card size" data (5, 2, 3, 1/2):</strong><br>' +
-                        '1. Check <span class="highlight">📝 Custom Fields ⭐</span> first - most likely location<br>' +
-                        '2. Look in <span class="highlight">🔌 Plugin Data</span> for stored values<br>' +
-                        '3. Check <span class="highlight">🏷️ Badges</span> for displayed values<br>' +
-                        '4. Expand each section by clicking its title';
+                    tip.innerHTML = '<strong>💡 How this works:</strong><br>' +
+                        '1. "Another power up" stores data at <span class="highlight">card.shared.someKey</span><br>' +
+                        '2. It displays that data using the card-badges capability<br>' +
+                        '3. Look in <span class="highlight">🔗 Shared Data</span> section for Size/Spent/Remaining values<br>' +
+                        '4. The key might be the power-up\'s name or ID';
                     container.appendChild(tip);
                     
                     document.getElementById('loading').style.display = 'none';

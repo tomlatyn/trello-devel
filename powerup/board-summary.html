@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Board Card Size Summary</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            padding: 16px;
+            margin: 0;
+            background: #f4f5f7;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #5e6c84;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0079bf;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: white;
+            border-radius: 3px;
+            padding: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .summary-label {
+            font-size: 12px;
+            color: #5e6c84;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .summary-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #172b4d;
+        }
+        .summary-value.size { color: #f2d600; }
+        .summary-value.spent { color: #61bd4f; }
+        .summary-value.remaining { color: #0079bf; }
+        .card-list {
+            background: white;
+            border-radius: 3px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .list-header {
+            padding: 12px 16px;
+            border-bottom: 2px solid #f4f5f7;
+            font-weight: 600;
+            color: #172b4d;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1;
+        }
+        .card-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f4f5f7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-item:hover {
+            background: #f4f5f7;
+        }
+        .card-item:last-child {
+            border-bottom: none;
+        }
+        .card-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 12px;
+            color: #172b4d;
+        }
+        .card-values {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .card-value {
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+        .card-value.size {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .card-value.spent {
+            background: #d4edda;
+            color: #155724;
+        }
+        .card-value.remaining {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .error {
+            background: #ffebe6;
+            color: #eb5a46;
+            padding: 16px;
+            border-radius: 3px;
+            margin-bottom: 16px;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 16px;
+            border-radius: 3px;
+            margin-bottom: 16px;
+        }
+        .debug-section {
+            margin-top: 20px;
+            background: white;
+            border-radius: 3px;
+            padding: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .debug-toggle {
+            font-weight: 600;
+            color: #0079bf;
+            cursor: pointer;
+            user-select: none;
+        }
+        .debug-toggle:hover {
+            text-decoration: underline;
+        }
+        .debug-content {
+            margin-top: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        pre {
+            background: #f4f5f7;
+            padding: 12px;
+            border-radius: 3px;
+            font-size: 11px;
+            overflow-x: auto;
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #5e6c84;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Loading board data...</p>
+    </div>
+    
+    <div id="content" style="display: none;">
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="summary-label">Total Size</div>
+                <div class="summary-value size" id="total-size">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total Spent</div>
+                <div class="summary-value spent" id="total-spent">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total Remaining</div>
+                <div class="summary-value remaining" id="total-remaining">0</div>
+            </div>
+        </div>
+        
+        <div class="card-list">
+            <div class="list-header">Cards with Size Data (<span id="card-count">0</span>)</div>
+            <div id="card-items"></div>
+        </div>
+        
+        <div class="debug-section">
+            <div class="debug-toggle" onclick="toggleDebug()">🔍 Show Debug Info</div>
+            <div id="debug-content" class="debug-content" style="display: none;"></div>
+        </div>
+    </div>
+    
+    <div id="error" class="error" style="display: none;"></div>
+    <div id="warning" class="warning" style="display: none;"></div>
+    
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <script>
+        var t = window.TrelloPowerUp.iframe();
+        var Promise = window.TrelloPowerUp.Promise;
+        
+        function toggleDebug() {
+            var debugContent = document.getElementById('debug-content');
+            if (debugContent.style.display === 'none') {
+                debugContent.style.display = 'block';
+            } else {
+                debugContent.style.display = 'none';
+            }
+            t.sizeTo('body');
+        }
+        
+        // CONFIGURE THIS: Set the key name where "Another power up" stores data
+        // You'll get this from the card inspector
+        var POWERUP_KEY = null; // Set this after inspecting a card, e.g., 'anotherPowerUpId'
+        
+        function extractCardSizeData(sharedData) {
+            // This function needs to be customized based on the actual data structure
+            // For now, it tries to find size/spent/remaining in various possible structures
+            
+            if (!sharedData) {
+                return null;
+            }
+            
+            console.log('Extracting from shared data:', sharedData);
+            
+            // Try different possible structures
+            var data = null;
+            
+            // If POWERUP_KEY is set, use it
+            if (POWERUP_KEY && sharedData[POWERUP_KEY]) {
+                data = sharedData[POWERUP_KEY];
+            } else {
+                // Try to find the data automatically
+                // Look through all keys in shared data
+                for (var key in sharedData) {
+                    if (sharedData.hasOwnProperty(key)) {
+                        var value = sharedData[key];
+                        // Check if this object has size/spent/remaining properties
+                        if (value && typeof value === 'object') {
+                            if (value.hasOwnProperty('size') || 
+                                value.hasOwnProperty('spent') || 
+                                value.hasOwnProperty('remaining')) {
+                                data = value;
+                                console.log('Found data under key:', key);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (!data) {
+                return null;
+            }
+            
+            // Extract numeric values
+            var result = {
+                size: parseFloat(data.size) || 0,
+                spent: parseFloat(data.spent) || 0,
+                remaining: parseFloat(data.remaining) || 0
+            };
+            
+            // Only return if at least one value is non-zero
+            if (result.size > 0 || result.spent > 0 || result.remaining > 0) {
+                return result;
+            }
+            
+            return null;
+        }
+        
+        function loadBoardData() {
+            var debugLog = [];
+            debugLog.push('=== BOARD SUMMARY DEBUG LOG ===\n');
+            
+            // Get board context
+            t.board('id', 'name')
+                .then(function(board) {
+                    debugLog.push('Board: ' + board.name + ' (' + board.id + ')\n\n');
+                    
+                    // Get all lists with their cards
+                    return t.lists('id', 'name', 'cards');
+                })
+                .then(function(lists) {
+                    debugLog.push('Found ' + lists.length + ' lists\n\n');
+                    
+                    // Collect all card IDs
+                    var cardIds = [];
+                    lists.forEach(function(list) {
+                        if (list.cards && list.cards.length > 0) {
+                            list.cards.forEach(function(card) {
+                                cardIds.push({
+                                    id: card.id,
+                                    name: card.name,
+                                    listName: list.name
+                                });
+                            });
+                        }
+                    });
+                    
+                    debugLog.push('Total cards: ' + cardIds.length + '\n\n');
+                    
+                    if (cardIds.length === 0) {
+                        throw new Error('No cards found on this board');
+                    }
+                    
+                    // For each card, get its shared data
+                    var cardPromises = cardIds.map(function(cardInfo) {
+                        return t.get(cardInfo.id, 'shared')
+                            .then(function(sharedData) {
+                                debugLog.push('Card: ' + cardInfo.name + '\n');
+                                debugLog.push('Shared data: ' + JSON.stringify(sharedData, null, 2) + '\n\n');
+                                
+                                var sizeData = extractCardSizeData(sharedData);
+                                
+                                return {
+                                    id: cardInfo.id,
+                                    name: cardInfo.name,
+                                    listName: cardInfo.listName,
+                                    data: sizeData,
+                                    rawShared: sharedData
+                                };
+                            })
+                            .catch(function(error) {
+                                debugLog.push('Error reading card ' + cardInfo.name + ': ' + error.message + '\n\n');
+                                return {
+                                    id: cardInfo.id,
+                                    name: cardInfo.name,
+                                    listName: cardInfo.listName,
+                                    data: null,
+                                    error: error.message
+                                };
+                            });
+                    });
+                    
+                    return Promise.all(cardPromises);
+                })
+                .then(function(cards) {
+                    var totals = {
+                        size: 0,
+                        spent: 0,
+                        remaining: 0
+                    };
+                    
+                    var cardsWithData = cards.filter(function(card) {
+                        return card.data !== null;
+                    });
+                    
+                    debugLog.push('=== SUMMARY ===\n');
+                    debugLog.push('Cards with size data: ' + cardsWithData.length + '\n');
+                    debugLog.push('Cards without data: ' + (cards.length - cardsWithData.length) + '\n\n');
+                    
+                    // Calculate totals and display cards
+                    var cardItemsEl = document.getElementById('card-items');
+                    
+                    if (cardsWithData.length === 0) {
+                        var noData = document.createElement('div');
+                        noData.className = 'no-data';
+                        noData.innerHTML = 'No card size data found.<br><br>' +
+                            '<small>Use the "Inspect Card Data" button on individual cards to see their data structure.</small>';
+                        cardItemsEl.appendChild(noData);
+                        
+                        document.getElementById('warning').style.display = 'block';
+                        document.getElementById('warning').innerHTML = '<strong>No data found!</strong><br>' +
+                            'Make sure cards have size data from "Another power up", and check the debug info below.';
+                    } else {
+                        cardsWithData.forEach(function(card) {
+                            totals.size += card.data.size;
+                            totals.spent += card.data.spent;
+                            totals.remaining += card.data.remaining;
+                            
+                            var cardItem = document.createElement('div');
+                            cardItem.className = 'card-item';
+                            
+                            var cardName = document.createElement('div');
+                            cardName.className = 'card-name';
+                            cardName.textContent = card.name;
+                            
+                            var cardValues = document.createElement('div');
+                            cardValues.className = 'card-values';
+                            
+                            if (card.data.size > 0) {
+                                var sizeVal = document.createElement('span');
+                                sizeVal.className = 'card-value size';
+                                sizeVal.textContent = 'Size: ' + card.data.size;
+                                cardValues.appendChild(sizeVal);
+                            }
+                            
+                            if (card.data.spent > 0) {
+                                var spentVal = document.createElement('span');
+                                spentVal.className = 'card-value spent';
+                                spentVal.textContent = 'Spent: ' + card.data.spent;
+                                cardValues.appendChild(spentVal);
+                            }
+                            
+                            if (card.data.remaining > 0) {
+                                var remainingVal = document.createElement('span');
+                                remainingVal.className = 'card-value remaining';
+                                remainingVal.textContent = 'Remaining: ' + card.data.remaining;
+                                cardValues.appendChild(remainingVal);
+                            }
+                            
+                            cardItem.appendChild(cardName);
+                            cardItem.appendChild(cardValues);
+                            cardItemsEl.appendChild(cardItem);
+                        });
+                    }
+                    
+                    // Update totals
+                    document.getElementById('total-size').textContent = totals.size.toFixed(1);
+                    document.getElementById('total-spent').textContent = totals.spent.toFixed(1);
+                    document.getElementById('total-remaining').textContent = totals.remaining.toFixed(1);
+                    document.getElementById('card-count').textContent = cardsWithData.length;
+                    
+                    // Update debug info
+                    debugLog.push('TOTALS:\n');
+                    debugLog.push('Size: ' + totals.size + '\n');
+                    debugLog.push('Spent: ' + totals.spent + '\n');
+                    debugLog.push('Remaining: ' + totals.remaining + '\n');
+                    
+                    document.getElementById('debug-content').innerHTML = '<pre>' + debugLog.join('') + '</pre>';
+                    
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('content').style.display = 'block';
+                    
+                    t.sizeTo('body');
+                })
+                .catch(function(error) {
+                    console.error('Error loading board data:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('error').style.display = 'block';
+                    document.getElementById('error').innerHTML = '<strong>Error:</strong> ' + error.message + 
+                        '<br><br>Check the browser console for more details.';
+                    t.sizeTo('body');
+                });
+        }
+        
+        loadBoardData();
+    </script>
+</body>
+</html>
