@@ -165,13 +165,11 @@
             var allCardsData = [];
             
             // Get the board context first
-            t.getContext()
-                .then(function(context) {
-                    debugInfo.push('Context: ' + JSON.stringify(context, null, 2));
-                    
-                    // Use t.lists() which works from board button context
-                    return t.lists('all');
-                })
+            var context = t.getContext();
+            debugInfo.push('Context: ' + JSON.stringify(context, null, 2));
+            
+            // Use t.lists() which works from board button context
+            t.lists('all')
                 .then(function(lists) {
                     debugInfo.push('Found ' + lists.length + ' lists');
                     
