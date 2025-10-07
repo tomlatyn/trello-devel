@@ -129,11 +129,21 @@
         function loadCardData() {
             var container = document.getElementById('content');
             
-            // Request ALL available card data
-            t.card('all')
-                .then(function(card) {
+            // Request ALL available card data INCLUDING shared plugin data
+            Promise.all([
+                t.card('all'),
+                t.get('card', 'shared'),
+                t.getAll()
+            ])
+                .then(function(results) {
+                    var card = results[0];
+                    var sharedData = results[1];
+                    var allData = results[2];
+                    
                     console.log('=== COMPLETE CARD DATA ===');
-                    console.log(card);
+                    console.log('Card:', card);
+                    console.log('Shared Data:', sharedData);
+                    console.log('All Data:', allData);
                     
                     // Card Basic Info
                     container.appendChild(createSection(
@@ -150,18 +160,32 @@
                     
                     // Plugin Data - THIS IS WHERE OTHER POWER-UPS STORE DATA
                     var pluginDataCount = card.pluginData ? card.pluginData.length : 0;
+                    var pluginDataContent = '';
+                    if (card.pluginData && card.pluginData.length > 0) {
+                        pluginDataContent = '<div style="margin-bottom: 10px;"><strong>⚠️ CHECK FOR CARD SIZE / HOURS DATA</strong></div>';
+                        pluginDataContent += '<pre>' + JSON.stringify(card.pluginData, null, 2) + '</pre>';
+                    } else {
+                        pluginDataContent = 'No plugin data found';
+                    }
                     container.appendChild(createSection(
                         '🔌 Plugin Data (Other Power-Ups)',
-                        card.pluginData || 'No plugin data found',
+                        pluginDataContent,
                         'plugin-data',
                         pluginDataCount > 0 ? pluginDataCount + ' items' : null
                     ));
                     
-                    // Custom Fields
+                    // Custom Fields - EXPANDED VIEW
                     var customFieldsCount = card.customFieldItems ? card.customFieldItems.length : 0;
+                    var customFieldsContent = '';
+                    if (card.customFieldItems && card.customFieldItems.length > 0) {
+                        customFieldsContent = '<div style="margin-bottom: 10px;"><strong>⚠️ LIKELY LOCATION FOR CARD SIZE DATA</strong></div>';
+                        customFieldsContent += '<pre>' + JSON.stringify(card.customFieldItems, null, 2) + '</pre>';
+                    } else {
+                        customFieldsContent = 'No custom fields';
+                    }
                     container.appendChild(createSection(
-                        '📝 Custom Fields',
-                        card.customFieldItems || 'No custom fields',
+                        '📝 Custom Fields ⭐',
+                        customFieldsContent,
                         'custom-fields',
                         customFieldsCount > 0 ? customFieldsCount + ' fields' : null
                     ));
@@ -210,9 +234,11 @@
                     // Add tip
                     var tip = document.createElement('div');
                     tip.className = 'tip';
-                    tip.innerHTML = '<strong>💡 Tip:</strong> Click on any section title to expand/collapse it. ' +
-                        'Look for <span class="highlight">pluginData</span> to see data from other Power-Ups. ' +
-                        'If you see numeric values that look like hours, note their location!';
+                    tip.innerHTML = '<strong>💡 Looking for "Card size" data (5, 2, 3, 1/2):</strong><br>' +
+                        '1. Check <span class="highlight">📝 Custom Fields ⭐</span> first - most likely location<br>' +
+                        '2. Look in <span class="highlight">🔌 Plugin Data</span> for stored values<br>' +
+                        '3. Check <span class="highlight">🏷️ Badges</span> for displayed values<br>' +
+                        '4. Expand each section by clicking its title';
                     container.appendChild(tip);
                     
                     document.getElementById('loading').style.display = 'none';
